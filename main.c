@@ -3,14 +3,17 @@
 #include <SDL_gfxPrimitives.h>
 #include <time.h>
 
-#define SCREEN_WIDTH		(640)
-#define SCREEN_HEIGHT		(480)
-#define SCREEN_BPP			(32)
+#define SCREEN_WIDTH			(640)
+#define SCREEN_HEIGHT			(480)
+#define SCREEN_BPP				(32)
 
 #define MAX_SNAKE_LEN			(1024)
+#define START_LEN				(5)
 #define SEGMENT_DISTANCE		(10.0)
+#define COLLECTIBLE_COUNT		(3)
 
 #define SDL_CHECK(x) if (x) { printf("SDL: %s\n", SDL_GetError()); exit(0); }
+#define SDLGFX_COLOR(r, g, b) (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff)
 
 struct Vec2D
 {
@@ -22,6 +25,7 @@ struct Segment
 {
 	struct Vec2D pos;
 	double r;
+	Uint32 color;
 };
 
 enum Turn
@@ -43,7 +47,6 @@ struct Snake
 struct Collectible
 {
 	struct Segment segment;
-	Uint32 color;
 };
 
 SDL_Surface *screen = NULL;
@@ -59,25 +62,11 @@ void snake_draw(const struct Snake *snake);
 void snake_control(struct Snake *snake);
 void snake_add_segments(struct Snake *snake, int count);
 void snake_eat_collectibles(struct Snake *snake, struct Collectible cols[], int colnum);
+bool snake_check_selfcollision(struct Snake *snake);
 
-void collectible_init(struct Collectible *col)
-{
-	col->segment = (struct Segment)
-		{ .pos = { .x = rand() % SCREEN_WIDTH, .y = rand() % SCREEN_HEIGHT },
-			.r = 5.0
-		};
-	col->color = SDL_MapRGB(screen->format, rand() % 255, rand() % 255, rand() % 255);
-}
-
-void collectible_process(struct Collectible *col)
-{
-	// placeholder for moving collectibles
-}
-
-void collectible_draw(struct Collectible *col)
-{
-	filledCircleColor(screen, col->segment.pos.x, col->segment.pos.y, col->segment.r, col->color);
-}
+void collectible_init(struct Collectible *col);
+void collectible_process(struct Collectible *col, double dt);
+void collectible_draw(struct Collectible *col);
 
 int main(int argc, char *argv[])
 {
@@ -90,9 +79,12 @@ int main(int argc, char *argv[])
 	srand(time(NULL));
 	struct Snake snake;
 	snake_init(&snake);
-	snake_add_segments(&snake, 5);
-	struct Collectible col;
-	collectible_init(&col);
+	snake_add_segments(&snake, START_LEN - 1);
+	struct Collectible col[COLLECTIBLE_COUNT];
+	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+	{
+		collectible_init(&col[i]);
+	}
 
 	SDL_Event event;
 	bool quit = false;
@@ -126,14 +118,25 @@ int main(int argc, char *argv[])
 
 			snake_control(&snake);
 
-			collectible_process(&col);
+			for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+			{
+				collectible_process(&col[i], dt);
+			}
 			snake_process(&snake, dt);
-			snake_eat_collectibles(&snake, &col, 1);
+			snake_eat_collectibles(&snake, col, COLLECTIBLE_COUNT);
 
-			SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 255, 255, 255));
-			collectible_draw(&col);
+			SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 128, 128, 128));
+			for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+			{
+				collectible_draw(&col[i]);
+			}
 			snake_draw(&snake);
 			SDL_Flip(screen);
+			if (snake_check_selfcollision(&snake))
+			{
+				SDL_Delay(1000);
+				quit = true;
+			}
 		}
 	}
 	return 0;
@@ -172,7 +175,8 @@ void snake_init(struct Snake *snake)
 	snake->len = 1;
 	snake->segments[0] = (struct Segment)
 		{ .pos = { .x = SCREEN_WIDTH/2, .y = SCREEN_HEIGHT/2 },
-			.r = 10.0
+			.r = 10.0,
+			.color = SDLGFX_COLOR(0, 0, 0)
 		};
 	snake->turn = TURN_NONE;
 }
@@ -214,9 +218,10 @@ void snake_process(struct Snake *snake, double dt)
 
 void snake_draw(const struct Snake *snake)
 {
-	for (int i = 0; i < snake->len; ++i)
+	for (int i = snake->len - 1; i >= 0; --i)
 	{
-		aacircleRGBA(screen, snake->segments[i].pos.x, snake->segments[i].pos.y, snake->segments[i].r, 0, 0, 0, 255);
+		filledCircleColor(screen, snake->segments[i].pos.x, snake->segments[i].pos.y, snake->segments[i].r, snake->segments[i].color);
+		aacircleRGBA(screen, snake->segments[i].pos.x, snake->segments[i].pos.y, snake->segments[i].r, 64, 64, 64, 255);
 	}
 }
 
@@ -245,16 +250,54 @@ void snake_add_segments(struct Snake *snake, int count)
 	{
 		snake->segments[i].r = 7.0;
 		snake->segments[i].pos = snake->segments[start - 1].pos;
+		snake->segments[i].color = SDLGFX_COLOR(rand() % 32, rand() % 32, rand() % 32);
 	}
 }
 
 void snake_eat_collectibles(struct Snake *snake, struct Collectible cols[], int colnum)
 {
-	struct Vec2D diff = snake->segments[0].pos;
-	vsub(&diff, &cols[0].segment.pos);
-	if (vlen(&diff) < (snake->segments[0].r + cols[0].segment.r))
+	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
 	{
-		snake_add_segments(snake, 1);
-		collectible_init(&cols[0]);
+		struct Vec2D diff = snake->segments[0].pos;
+		vsub(&diff, &cols[i].segment.pos);
+		if (vlen(&diff) < (snake->segments[0].r + cols[i].segment.r))
+		{
+			snake_add_segments(snake, 1);
+			collectible_init(&cols[i]);
+		}
 	}
+}
+
+bool snake_check_selfcollision(struct Snake *snake)
+{
+	for (int i = START_LEN; i < snake->len; ++i)
+	{
+		struct Vec2D diff = snake->segments[0].pos;
+		vsub(&diff, &snake->segments[i].pos);
+		if (vlen(&diff) < (snake->segments[0].r + snake->segments[i].r))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void collectible_init(struct Collectible *col)
+{
+	col->segment = (struct Segment)
+		{ .pos = { .x = rand() % SCREEN_WIDTH, .y = rand() % SCREEN_HEIGHT },
+			.r = 5.0,
+			.color = SDLGFX_COLOR(rand() % 255, rand() % 255, rand() % 255)
+		};
+}
+
+void collectible_process(struct Collectible *col, double dt)
+{
+	// placeholder for moving collectibles
+}
+
+void collectible_draw(struct Collectible *col)
+{
+	filledCircleColor(screen, col->segment.pos.x, col->segment.pos.y, col->segment.r, col->segment.color);
+	aacircleRGBA(screen, col->segment.pos.x, col->segment.pos.y, col->segment.r, 0, 0, 0, 255);
 }
