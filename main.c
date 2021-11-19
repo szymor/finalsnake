@@ -28,6 +28,13 @@ struct Segment
 	Uint32 color;
 };
 
+enum CameraMode
+{
+	CM_FIXED,
+	CM_TRACKING,
+	CM_TPP
+};
+
 enum Turn
 {
 	TURN_NONE,
@@ -49,12 +56,26 @@ struct Collectible
 	struct Segment segment;
 };
 
+struct Camera
+{
+	enum CameraMode cm;
+	struct Vec2D *center;
+	double *angle;
+};
+
 SDL_Surface *screen = NULL;
+struct Camera camera = {
+	.cm = CM_FIXED,
+	.center = NULL,
+	.angle = NULL
+};
 
 struct Vec2D* vadd(struct Vec2D *dst, const struct Vec2D *elem);
 struct Vec2D* vsub(struct Vec2D *dst, const struct Vec2D *elem);
 struct Vec2D* vmul(struct Vec2D *dst, double scalar);
 double vlen(const struct Vec2D *vec);
+
+void camera_convert(double *x, double *y);
 
 void snake_init(struct Snake *snake);
 void snake_process(struct Snake *snake, double dt);
@@ -98,6 +119,18 @@ int main(int argc, char *argv[])
 				case SDL_KEYDOWN:
 					switch (event.key.keysym.sym)
 					{
+						case SDLK_1:
+							camera.cm = CM_FIXED;
+							break;
+						case SDLK_2:
+							camera.cm = CM_TRACKING;
+							camera.center = &snake.segments[0].pos;
+							break;
+						case SDLK_3:
+							camera.cm = CM_TPP;
+							camera.center = &snake.segments[0].pos;
+							camera.angle = &snake.dir;
+							break;
 						case SDLK_ESCAPE:
 							quit = true;
 							break;
@@ -220,8 +253,11 @@ void snake_draw(const struct Snake *snake)
 {
 	for (int i = snake->len - 1; i >= 0; --i)
 	{
-		filledCircleColor(screen, snake->segments[i].pos.x, snake->segments[i].pos.y, snake->segments[i].r, snake->segments[i].color);
-		aacircleRGBA(screen, snake->segments[i].pos.x, snake->segments[i].pos.y, snake->segments[i].r, 64, 64, 64, 255);
+		double x = snake->segments[i].pos.x;
+		double y = snake->segments[i].pos.y;
+		camera_convert(&x, &y);
+		filledCircleColor(screen, x, y, snake->segments[i].r, snake->segments[i].color);
+		aacircleRGBA(screen, x, y, snake->segments[i].r, 64, 64, 64, 255);
 	}
 }
 
@@ -298,6 +334,35 @@ void collectible_process(struct Collectible *col, double dt)
 
 void collectible_draw(struct Collectible *col)
 {
-	filledCircleColor(screen, col->segment.pos.x, col->segment.pos.y, col->segment.r, col->segment.color);
-	aacircleRGBA(screen, col->segment.pos.x, col->segment.pos.y, col->segment.r, 0, 0, 0, 255);
+	double x = col->segment.pos.x;
+	double y = col->segment.pos.y;
+	camera_convert(&x, &y);
+	filledCircleColor(screen, x, y, col->segment.r, col->segment.color);
+	aacircleRGBA(screen, x, y, col->segment.r, 0, 0, 0, 255);
+}
+
+void camera_convert(double *x, double *y)
+{
+	switch (camera.cm)
+	{
+		case CM_FIXED:
+			// nothing to do
+			break;
+		case CM_TRACKING:
+			*x = *x - camera.center->x + SCREEN_WIDTH / 2;
+			*y = *y - camera.center->y + SCREEN_HEIGHT / 2;
+			break;
+		case CM_TPP:
+			*x -= camera.center->x;
+			*y -= camera.center->y;
+			double oldx = *x;
+			double oldy = *y;
+			double sinfi = sin(*camera.angle);
+			double cosfi = cos(*camera.angle);
+			*x = oldx * cosfi + oldy * sinfi;
+			*y = -oldx * sinfi + oldy * cosfi;
+			*x += SCREEN_WIDTH / 2;
+			*y += SCREEN_HEIGHT / 2;
+			break;
+	}
 }
