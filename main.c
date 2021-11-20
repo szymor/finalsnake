@@ -11,6 +11,9 @@
 #define START_LEN				(5)
 #define SEGMENT_DISTANCE		(10.0)
 #define COLLECTIBLE_COUNT		(3)
+#define SNAKE_V_MULTIPLIER		(2.0)
+#define SNAKE_W_MULTIPLIER		(1.5)
+#define SNAKE_EAT_MULTIPLIER	(1.08)
 
 #define SDL_CHECK(x) if (x) { printf("SDL: %s\n", SDL_GetError()); exit(0); }
 #define SDLGFX_COLOR(r, g, b) (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff)
@@ -44,8 +47,11 @@ enum Turn
 
 struct Snake
 {
-	double v;
-	double dir;
+	double v;	// linear speed
+	double base_v;
+	double w;	// angular speed
+	double base_w;
+	double dir;	// angular position
 	int len;
 	struct Segment segments[MAX_SNAKE_LEN];
 	enum Turn turn;
@@ -64,17 +70,17 @@ struct Camera
 };
 
 SDL_Surface *screen = NULL;
-struct Camera camera = {
-	.cm = CM_FIXED,
-	.center = NULL,
-	.angle = NULL
-};
 
 struct Vec2D* vadd(struct Vec2D *dst, const struct Vec2D *elem);
 struct Vec2D* vsub(struct Vec2D *dst, const struct Vec2D *elem);
 struct Vec2D* vmul(struct Vec2D *dst, double scalar);
 double vlen(const struct Vec2D *vec);
 
+struct Camera camera = {
+	.cm = CM_FIXED,
+	.center = NULL,
+	.angle = NULL
+};
 void camera_convert(double *x, double *y);
 
 void snake_init(struct Snake *snake);
@@ -88,6 +94,10 @@ bool snake_check_selfcollision(struct Snake *snake);
 void collectible_init(struct Collectible *col);
 void collectible_process(struct Collectible *col, double dt);
 void collectible_draw(struct Collectible *col);
+
+int fps = 0;
+void fps_counter(double dt);
+void fps_draw(void);
 
 int main(int argc, char *argv[])
 {
@@ -148,6 +158,7 @@ int main(int argc, char *argv[])
 			Uint32 delta = currtime - prevtime;
 			prevtime = currtime;
 			double dt = delta / 1000.0;
+			fps_counter(dt);
 
 			snake_control(&snake);
 
@@ -164,6 +175,7 @@ int main(int argc, char *argv[])
 				collectible_draw(&col[i]);
 			}
 			snake_draw(&snake);
+			fps_draw();
 			SDL_Flip(screen);
 			if (snake_check_selfcollision(&snake))
 			{
@@ -203,7 +215,8 @@ double vlen(const struct Vec2D *vec)
 
 void snake_init(struct Snake *snake)
 {
-	snake->v = 70.0;
+	snake->base_v = 70.0;
+	snake->base_w = M_PI;
 	snake->dir = 0.0;
 	snake->len = 1;
 	snake->segments[0] = (struct Segment)
@@ -220,10 +233,10 @@ void snake_process(struct Snake *snake, double dt)
 	switch (snake->turn)
 	{
 		case TURN_LEFT:
-			snake->dir -= M_PI * dt;
+			snake->dir -= snake->w * dt;
 			break;
 		case TURN_RIGHT:
-			snake->dir += M_PI * dt;
+			snake->dir += snake->w * dt;
 			break;
 	}
 
@@ -276,6 +289,16 @@ void snake_control(struct Snake *snake)
 	{
 		snake->turn = TURN_NONE;
 	}
+	if (keystate[SDLK_UP])
+	{
+		snake->v = snake->base_v * SNAKE_V_MULTIPLIER;
+		snake->w = snake->base_w * SNAKE_W_MULTIPLIER;
+	}
+	else
+	{
+		snake->v = snake->base_v;
+		snake->w = snake->base_w;
+	}
 }
 
 void snake_add_segments(struct Snake *snake, int count)
@@ -299,6 +322,7 @@ void snake_eat_collectibles(struct Snake *snake, struct Collectible cols[], int 
 		if (vlen(&diff) < (snake->segments[0].r + cols[i].segment.r))
 		{
 			snake_add_segments(snake, 1);
+			//snake->base_v *= SNAKE_EAT_MULTIPLIER;
 			collectible_init(&cols[i]);
 		}
 	}
@@ -365,4 +389,25 @@ void camera_convert(double *x, double *y)
 			*y += SCREEN_HEIGHT / 2;
 			break;
 	}
+}
+
+void fps_counter(double dt)
+{
+	static double total = 0;
+	static int count = 0;
+	total += dt;
+	++count;
+	if (total > 1.0)
+	{
+		fps = count;
+		total -= 1.0;
+		count = 0;
+	}
+}
+
+void fps_draw(void)
+{
+	char string[8] = "";
+	sprintf(string, "%d", fps);
+	stringRGBA(screen, 0, 0, string, 255, 255, 255, 255);
 }
