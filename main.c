@@ -6,6 +6,7 @@
 #define SCREEN_WIDTH			(640)
 #define SCREEN_HEIGHT			(480)
 #define SCREEN_BPP				(32)
+#define FPS_LIMIT				(60)
 
 #define MAX_SNAKE_LEN			(1024)
 #define START_LEN				(5)
@@ -62,6 +63,13 @@ struct Collectible
 	struct Segment segment;
 };
 
+struct Wall
+{
+	struct Vec2D start;
+	struct Vec2D end;
+	double r;
+};
+
 struct Camera
 {
 	enum CameraMode cm;
@@ -74,6 +82,7 @@ SDL_Surface *screen = NULL;
 struct Vec2D* vadd(struct Vec2D *dst, const struct Vec2D *elem);
 struct Vec2D* vsub(struct Vec2D *dst, const struct Vec2D *elem);
 struct Vec2D* vmul(struct Vec2D *dst, double scalar);
+double vdot(const struct Vec2D *vec1, const struct Vec2D *vec2);
 double vlen(const struct Vec2D *vec);
 
 struct Camera camera = {
@@ -89,15 +98,23 @@ void snake_draw(const struct Snake *snake);
 void snake_control(struct Snake *snake);
 void snake_add_segments(struct Snake *snake, int count);
 void snake_eat_collectibles(struct Snake *snake, struct Collectible cols[], int colnum);
-bool snake_check_selfcollision(struct Snake *snake);
+bool snake_check_selfcollision(const struct Snake *snake);
+bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], int wallnum);
 
 void collectible_init(struct Collectible *col);
 void collectible_process(struct Collectible *col, double dt);
-void collectible_draw(struct Collectible *col);
+void collectible_draw(const struct Collectible *col);
+
+void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, double r);
+void wall_draw(const struct Wall *wall);
+struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos);
 
 int fps = 0;
 void fps_counter(double dt);
 void fps_draw(void);
+#if FPS_LIMIT != 0
+void fps_limiter(void);
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -116,6 +133,8 @@ int main(int argc, char *argv[])
 	{
 		collectible_init(&col[i]);
 	}
+	struct Wall wallie;
+	wall_init(&wallie, 50, 50, 100, 150, 10);
 
 	SDL_Event event;
 	bool quit = false;
@@ -158,6 +177,9 @@ int main(int argc, char *argv[])
 			Uint32 delta = currtime - prevtime;
 			prevtime = currtime;
 			double dt = delta / 1000.0;
+#if FPS_LIMIT != 0
+			fps_limiter();
+#endif
 			fps_counter(dt);
 
 			snake_control(&snake);
@@ -167,6 +189,7 @@ int main(int argc, char *argv[])
 				collectible_process(&col[i], dt);
 			}
 			snake_process(&snake, dt);
+			wall_dist(&wallie, &snake.segments[0].pos);
 			snake_eat_collectibles(&snake, col, COLLECTIBLE_COUNT);
 
 			SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 128, 128, 128));
@@ -174,10 +197,12 @@ int main(int argc, char *argv[])
 			{
 				collectible_draw(&col[i]);
 			}
+			wall_draw(&wallie);
 			snake_draw(&snake);
 			fps_draw();
 			SDL_Flip(screen);
-			if (snake_check_selfcollision(&snake))
+			if (snake_check_selfcollision(&snake) ||
+				snake_check_wallcollision(&snake, &wallie, 1))
 			{
 				SDL_Delay(1000);
 				quit = true;
@@ -206,6 +231,11 @@ struct Vec2D* vmul(struct Vec2D *dst, double scalar)
 	dst->x *= scalar;
 	dst->y *= scalar;
 	return dst;
+}
+
+double vdot(const struct Vec2D *vec1, const struct Vec2D *vec2)
+{
+	return vec1->x * vec2->x + vec1->y * vec2->y;
 }
 
 double vlen(const struct Vec2D *vec)
@@ -328,13 +358,26 @@ void snake_eat_collectibles(struct Snake *snake, struct Collectible cols[], int 
 	}
 }
 
-bool snake_check_selfcollision(struct Snake *snake)
+bool snake_check_selfcollision(const struct Snake *snake)
 {
 	for (int i = START_LEN; i < snake->len; ++i)
 	{
 		struct Vec2D diff = snake->segments[0].pos;
 		vsub(&diff, &snake->segments[i].pos);
 		if (vlen(&diff) < (snake->segments[0].r + snake->segments[i].r))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], int wallnum)
+{
+	for (int i = 0; i < wallnum; ++i)
+	{
+		struct Vec2D *vdist = wall_dist(&walls[i], &snake->segments[0].pos);
+		if (vlen(vdist) < (snake->segments[0].r + walls[i].r))
 		{
 			return true;
 		}
@@ -356,7 +399,7 @@ void collectible_process(struct Collectible *col, double dt)
 	// placeholder for moving collectibles
 }
 
-void collectible_draw(struct Collectible *col)
+void collectible_draw(const struct Collectible *col)
 {
 	double x = col->segment.pos.x;
 	double y = col->segment.pos.y;
@@ -410,4 +453,77 @@ void fps_draw(void)
 	char string[8] = "";
 	sprintf(string, "%d", fps);
 	stringRGBA(screen, 0, 0, string, 255, 255, 255, 255);
+}
+
+#if FPS_LIMIT != 0
+void fps_limiter(void)
+{
+	static const Uint32 target_frame_duration = 1000 / FPS_LIMIT;
+	static Uint32 prev = 0;
+	Uint32 curr = SDL_GetTicks();
+	if (0 == prev)
+	{
+		prev = curr;
+	}
+	while (curr < prev + target_frame_duration)
+	{
+		SDL_Delay(1);
+		curr = SDL_GetTicks();
+	}
+	prev = curr;
+}
+#endif
+
+void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, double r)
+{
+	wall->start.x = x1;
+	wall->start.y = y1;
+	wall->end.x = x2;
+	wall->end.y = y2;
+	wall->r = r;
+}
+
+void wall_draw(const struct Wall *wall)
+{
+	double x1 = wall->start.x;
+	double y1 = wall->start.y;
+	double x2 = wall->end.x;
+	double y2 = wall->end.y;
+	camera_convert(&x1, &y1);
+	camera_convert(&x2, &y2);
+	thickLineRGBA(screen, x1, y1, x2, y2, 2 * wall->r + 1, 0, 0, 0, 255);
+	filledCircleRGBA(screen, x1, y1, wall->r, 0, 0, 0, 255);
+	filledCircleRGBA(screen, x2, y2, wall->r, 0, 0, 0, 255);
+}
+
+struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos)
+{
+	static struct Vec2D dist_vector;
+
+	struct Vec2D wall_vector = wall->end;
+	vsub(&wall_vector, &wall->start);
+	struct Vec2D pos_vector = *pos;
+	vsub(&pos_vector, &wall->start);
+	double walllen = vlen(&wall_vector);
+	double projlen = vdot(&wall_vector, &pos_vector) / walllen;
+	double ratio = projlen / walllen;
+
+	if (ratio < 0.0)		// distance to the wall start
+	{
+		dist_vector = pos_vector;
+	}
+	else if (ratio > 1.0)	// distance to the wall end
+	{
+		dist_vector = *pos;
+		vsub(&dist_vector, &wall->end);
+	}
+	else					// perpendicular distance
+	{
+		dist_vector = pos_vector;
+		struct Vec2D projection = wall_vector;
+		vmul(&projection, ratio);
+		vsub(&dist_vector, &projection);
+	}
+
+	return &dist_vector;
 }
