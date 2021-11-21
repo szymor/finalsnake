@@ -3,18 +3,18 @@
 #include <SDL_gfxPrimitives.h>
 #include <time.h>
 
-#define SCREEN_WIDTH			(640)
-#define SCREEN_HEIGHT			(480)
-#define SCREEN_BPP				(32)
-#define FPS_LIMIT				(60)
+#define SCREEN_WIDTH					(640)
+#define SCREEN_HEIGHT					(480)
+#define SCREEN_BPP						(32)
+#define FPS_LIMIT						(60)
 
-#define MAX_SNAKE_LEN			(1024)
-#define START_LEN				(5)
-#define SEGMENT_DISTANCE		(10.0)
-#define COLLECTIBLE_COUNT		(3)
-#define SNAKE_V_MULTIPLIER		(2.0)
-#define SNAKE_W_MULTIPLIER		(1.5)
-#define SNAKE_EAT_MULTIPLIER	(1.08)
+#define MAX_SNAKE_LEN					(1024)
+#define START_LEN						(5)
+#define SEGMENT_DISTANCE				(10.0)
+#define COLLECTIBLE_COUNT				(3)
+#define COLLECTIBLE_SAFE_DISTANCE		(20.0)
+#define SNAKE_V_MULTIPLIER				(2.0)
+#define SNAKE_W_MULTIPLIER				(1.5)
 
 #define SDL_CHECK(x) if (x) { printf("SDL: %s\n", SDL_GetError()); exit(0); }
 #define SDLGFX_COLOR(r, g, b) (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff)
@@ -73,23 +73,40 @@ struct Wall
 struct Camera
 {
 	enum CameraMode cm;
-	struct Vec2D *center;
-	double *angle;
+	const struct Vec2D *center;
+	const double *angle;
+};
+
+struct Room
+{
+	struct Snake snake;
+	struct Collectible col[COLLECTIBLE_COUNT];
+	struct Wall *walls;
+	int wallnum;
 };
 
 SDL_Surface *screen = NULL;
-
-struct Vec2D* vadd(struct Vec2D *dst, const struct Vec2D *elem);
-struct Vec2D* vsub(struct Vec2D *dst, const struct Vec2D *elem);
-struct Vec2D* vmul(struct Vec2D *dst, double scalar);
-double vdot(const struct Vec2D *vec1, const struct Vec2D *vec2);
-double vlen(const struct Vec2D *vec);
 
 struct Camera camera = {
 	.cm = CM_FIXED,
 	.center = NULL,
 	.angle = NULL
 };
+
+struct Vec2D* vadd(struct Vec2D *dst, const struct Vec2D *elem);
+struct Vec2D* vsub(struct Vec2D *dst, const struct Vec2D *elem);
+struct Vec2D* vmul(struct Vec2D *dst, double scalar);
+double vdot(const struct Vec2D *vec1, const struct Vec2D *vec2);
+double vlen(const struct Vec2D *vec);
+double vdist(const struct Vec2D *vec1, const struct Vec2D *vec2);
+
+void camera_prepare(const struct Snake *target, enum CameraMode cm)
+{
+	camera.cm = cm;
+	camera.center = &target->segments[0].pos;
+	camera.angle = &target->dir;
+}
+
 void camera_convert(double *x, double *y);
 
 void snake_init(struct Snake *snake);
@@ -97,17 +114,23 @@ void snake_process(struct Snake *snake, double dt);
 void snake_draw(const struct Snake *snake);
 void snake_control(struct Snake *snake);
 void snake_add_segments(struct Snake *snake, int count);
-void snake_eat_collectibles(struct Snake *snake, struct Collectible cols[], int colnum);
+void snake_eat_collectibles(struct Snake *snake, struct Room *room);
 bool snake_check_selfcollision(const struct Snake *snake);
 bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], int wallnum);
 
-void collectible_init(struct Collectible *col);
+void collectible_generate(struct Collectible *col, const struct Room *room);
 void collectible_process(struct Collectible *col, double dt);
 void collectible_draw(const struct Collectible *col);
 
 void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, double r);
 void wall_draw(const struct Wall *wall);
 struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos);
+
+void room_init(struct Room *room, int level);
+void room_dispose(struct Room *room);
+void room_process(struct Room *room, double dt);
+void room_draw(const struct Room *room);
+bool room_check_gameover(const struct Room *room);
 
 int fps = 0;
 void fps_counter(double dt);
@@ -125,16 +148,8 @@ int main(int argc, char *argv[])
 
 	// game data init
 	srand(time(NULL));
-	struct Snake snake;
-	snake_init(&snake);
-	snake_add_segments(&snake, START_LEN - 1);
-	struct Collectible col[COLLECTIBLE_COUNT];
-	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
-	{
-		collectible_init(&col[i]);
-	}
-	struct Wall wallie;
-	wall_init(&wallie, 50, 50, 100, 150, 10);
+	struct Room room;
+	room_init(&room, 0);
 
 	SDL_Event event;
 	bool quit = false;
@@ -149,16 +164,13 @@ int main(int argc, char *argv[])
 					switch (event.key.keysym.sym)
 					{
 						case SDLK_1:
-							camera.cm = CM_FIXED;
+							camera_prepare(&room.snake, CM_FIXED);
 							break;
 						case SDLK_2:
-							camera.cm = CM_TRACKING;
-							camera.center = &snake.segments[0].pos;
+							camera_prepare(&room.snake, CM_TRACKING);
 							break;
 						case SDLK_3:
-							camera.cm = CM_TPP;
-							camera.center = &snake.segments[0].pos;
-							camera.angle = &snake.dir;
+							camera_prepare(&room.snake, CM_TPP);
 							break;
 						case SDLK_ESCAPE:
 							quit = true;
@@ -181,28 +193,11 @@ int main(int argc, char *argv[])
 			fps_limiter();
 #endif
 			fps_counter(dt);
-
-			snake_control(&snake);
-
-			for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
-			{
-				collectible_process(&col[i], dt);
-			}
-			snake_process(&snake, dt);
-			wall_dist(&wallie, &snake.segments[0].pos);
-			snake_eat_collectibles(&snake, col, COLLECTIBLE_COUNT);
-
-			SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 128, 128, 128));
-			for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
-			{
-				collectible_draw(&col[i]);
-			}
-			wall_draw(&wallie);
-			snake_draw(&snake);
+			room_process(&room, dt);
+			room_draw(&room);
 			fps_draw();
 			SDL_Flip(screen);
-			if (snake_check_selfcollision(&snake) ||
-				snake_check_wallcollision(&snake, &wallie, 1))
+			if (room_check_gameover(&room))
 			{
 				SDL_Delay(1000);
 				quit = true;
@@ -241,6 +236,13 @@ double vdot(const struct Vec2D *vec1, const struct Vec2D *vec2)
 double vlen(const struct Vec2D *vec)
 {
 	return sqrt(vec->x * vec->x + vec->y * vec->y);
+}
+
+double vdist(const struct Vec2D *vec1, const struct Vec2D *vec2)
+{
+	struct Vec2D diff = *vec1;
+	vsub(&diff, vec2);
+	return vlen(&diff);
 }
 
 void snake_init(struct Snake *snake)
@@ -343,17 +345,16 @@ void snake_add_segments(struct Snake *snake, int count)
 	}
 }
 
-void snake_eat_collectibles(struct Snake *snake, struct Collectible cols[], int colnum)
+void snake_eat_collectibles(struct Snake *snake, struct Room *room)
 {
 	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
 	{
 		struct Vec2D diff = snake->segments[0].pos;
-		vsub(&diff, &cols[i].segment.pos);
-		if (vlen(&diff) < (snake->segments[0].r + cols[i].segment.r))
+		vsub(&diff, &room->col[i].segment.pos);
+		if (vlen(&diff) < (snake->segments[0].r + room->col[i].segment.r))
 		{
 			snake_add_segments(snake, 1);
-			//snake->base_v *= SNAKE_EAT_MULTIPLIER;
-			collectible_init(&cols[i]);
+			collectible_generate(&room->col[i], room);
 		}
 	}
 }
@@ -376,8 +377,8 @@ bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], i
 {
 	for (int i = 0; i < wallnum; ++i)
 	{
-		struct Vec2D *vdist = wall_dist(&walls[i], &snake->segments[0].pos);
-		if (vlen(vdist) < (snake->segments[0].r + walls[i].r))
+		struct Vec2D *vector_distance = wall_dist(&walls[i], &snake->segments[0].pos);
+		if (vlen(vector_distance) < (snake->segments[0].r + walls[i].r))
 		{
 			return true;
 		}
@@ -385,13 +386,34 @@ bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], i
 	return false;
 }
 
-void collectible_init(struct Collectible *col)
+void collectible_generate(struct Collectible *col, const struct Room *room)
 {
 	col->segment = (struct Segment)
-		{ .pos = { .x = rand() % SCREEN_WIDTH, .y = rand() % SCREEN_HEIGHT },
+		{ .pos = { .x = 0, .y = 0 },
 			.r = 5.0,
 			.color = SDLGFX_COLOR(rand() % 255, rand() % 255, rand() % 255)
 		};
+
+	// generate position until is safe
+	bool safe;
+	do {
+		safe = true;
+		col->segment.pos.x = rand() % SCREEN_WIDTH;
+		col->segment.pos.y = rand() % SCREEN_HEIGHT;
+		if (vdist(&col->segment.pos, &room->snake.segments[0].pos) < COLLECTIBLE_SAFE_DISTANCE)
+		{
+			safe = false;
+			continue;
+		}
+		for (int i = 0; i < room->wallnum; ++i)
+		{
+			if (vlen(wall_dist(&room->walls[i], &col->segment.pos)) < COLLECTIBLE_SAFE_DISTANCE)
+			{
+				safe = false;
+				break;
+			}
+		}
+	} while (!safe);
 }
 
 void collectible_process(struct Collectible *col, double dt)
@@ -526,4 +548,64 @@ struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos)
 	}
 
 	return &dist_vector;
+}
+
+void room_init(struct Room *room, int level)
+{
+	snake_init(&room->snake);
+	snake_add_segments(&room->snake, START_LEN - 1);
+	room->wallnum = 4;
+	room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
+	wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
+	wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
+	wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
+	wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
+	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+	{
+		// needs to be done after wall init
+		collectible_generate(&room->col[i], room);
+	}
+	camera_prepare(&room->snake, CM_FIXED);
+}
+
+void room_dispose(struct Room *room)
+{
+	if (room->walls)
+	{
+		free(room->walls);
+		room->walls = NULL;
+		room->wallnum = 0;
+	}
+}
+
+void room_process(struct Room *room, double dt)
+{
+	snake_control(&room->snake);
+
+	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+	{
+		collectible_process(&room->col[i], dt);
+	}
+	snake_process(&room->snake, dt);
+	snake_eat_collectibles(&room->snake, room);
+}
+
+void room_draw(const struct Room *room)
+{
+	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 128, 128, 128));
+	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+	{
+		collectible_draw(&room->col[i]);
+	}
+	for (int i = 0; i < room->wallnum; ++i)
+	{
+		wall_draw(&room->walls[i]);
+	}
+	snake_draw(&room->snake);
+}
+
+bool room_check_gameover(const struct Room *room)
+{
+	return snake_check_selfcollision(&room->snake) ||
+		snake_check_wallcollision(&room->snake, room->walls, room->wallnum);
 }
