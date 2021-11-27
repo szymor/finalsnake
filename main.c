@@ -3,10 +3,28 @@
 #include <SDL_gfxPrimitives.h>
 #include <time.h>
 
-#define SCREEN_WIDTH					(640)
-#define SCREEN_HEIGHT					(480)
+#define SCREEN_WIDTH					(320)
+#define SCREEN_HEIGHT					(240)
+#if defined(MIYOO)
+#define SCREEN_BPP						(16)
+#define FPS_LIMIT						(60)
+#else
 #define SCREEN_BPP						(32)
 #define FPS_LIMIT						(60)
+#endif
+
+#define KEY_LEFT						SDLK_LEFT
+#define KEY_RIGHT						SDLK_RIGHT
+#if defined(MIYOO)
+#define KEY_ACCELERATE					SDLK_LALT
+#else
+#define KEY_ACCELERATE					SDLK_UP
+#endif
+#define KEY_PREV_CM						SDLK_TAB
+#define KEY_NEXT_CM						SDLK_BACKSPACE
+#define KEY_QUIT						SDLK_ESCAPE
+
+#define ANTIALIASING_OFF
 
 #define MAX_SNAKE_LEN					(1024)
 #define START_LEN						(5)
@@ -18,6 +36,9 @@
 
 #define SDL_CHECK(x) if (x) { printf("SDL: %s\n", SDL_GetError()); exit(0); }
 #define SDLGFX_COLOR(r, g, b) (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff)
+
+#define SINCOS_FIX_INC(x)		if ((x) >  M_PI) (x) -= 2 * M_PI;
+#define SINCOS_FIX_DEC(x)		if ((x) < -M_PI) (x) += 2 * M_PI;
 
 struct Vec2D
 {
@@ -36,7 +57,8 @@ enum CameraMode
 {
 	CM_FIXED,
 	CM_TRACKING,
-	CM_TPP
+	CM_TPP,
+	CM_END
 };
 
 enum Turn
@@ -100,13 +122,7 @@ double vdot(const struct Vec2D *vec1, const struct Vec2D *vec2);
 double vlen(const struct Vec2D *vec);
 double vdist(const struct Vec2D *vec1, const struct Vec2D *vec2);
 
-void camera_prepare(const struct Snake *target, enum CameraMode cm)
-{
-	camera.cm = cm;
-	camera.center = &target->segments[0].pos;
-	camera.angle = &target->dir;
-}
-
+void camera_prepare(const struct Snake *target, enum CameraMode cm);
 void camera_convert(double *x, double *y);
 
 void snake_init(struct Snake *snake);
@@ -141,13 +157,19 @@ void fps_limiter(void);
 
 int main(int argc, char *argv[])
 {
-	SDL_CHECK(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0);
-	screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	SDL_CHECK(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0);
+#if defined(MIYOO)
+	const Uint32 vflags = SDL_SWSURFACE | SDL_DOUBLEBUF;
+#else
+	const Uint32 vflags = SDL_HWSURFACE | SDL_DOUBLEBUF;
+#endif
+	screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, vflags);
 	SDL_CHECK(screen == NULL);
 	SDL_WM_SetCaption("Final Snake prealpha", NULL);
 
 	// game data init
 	srand(time(NULL));
+	enum CameraMode cm = CM_FIXED;
 	struct Room room;
 	room_init(&room, 0);
 
@@ -164,15 +186,26 @@ int main(int argc, char *argv[])
 					switch (event.key.keysym.sym)
 					{
 						case SDLK_1:
-							camera_prepare(&room.snake, CM_FIXED);
+							cm = CM_FIXED;
+							camera_prepare(&room.snake, cm);
 							break;
 						case SDLK_2:
-							camera_prepare(&room.snake, CM_TRACKING);
+							cm = CM_TRACKING;
+							camera_prepare(&room.snake, cm);
 							break;
 						case SDLK_3:
-							camera_prepare(&room.snake, CM_TPP);
+							cm = CM_TPP;
+							camera_prepare(&room.snake, cm);
 							break;
-						case SDLK_ESCAPE:
+						case KEY_PREV_CM:
+							cm = (cm + CM_END - 1) % CM_END;
+							camera_prepare(&room.snake, cm);
+							break;
+						case KEY_NEXT_CM:
+							cm = (cm + 1) % CM_END;
+							camera_prepare(&room.snake, cm);
+							break;
+						case KEY_QUIT:
 							quit = true;
 							break;
 					}
@@ -266,9 +299,11 @@ void snake_process(struct Snake *snake, double dt)
 	{
 		case TURN_LEFT:
 			snake->dir -= snake->w * dt;
+			SINCOS_FIX_DEC(snake->dir);
 			break;
 		case TURN_RIGHT:
 			snake->dir += snake->w * dt;
+			SINCOS_FIX_INC(snake->dir);
 			break;
 	}
 
@@ -302,18 +337,20 @@ void snake_draw(const struct Snake *snake)
 		double y = snake->segments[i].pos.y;
 		camera_convert(&x, &y);
 		filledCircleColor(screen, x, y, snake->segments[i].r, snake->segments[i].color);
+#ifndef ANTIALIASING_OFF
 		aacircleRGBA(screen, x, y, snake->segments[i].r, 64, 64, 64, 255);
+#endif
 	}
 }
 
 void snake_control(struct Snake *snake)
 {
 	Uint8 *keystate = SDL_GetKeyState(NULL);
-	if (keystate[SDLK_LEFT] && !keystate[SDLK_RIGHT])
+	if (keystate[KEY_LEFT] && !keystate[KEY_RIGHT])
 	{
 		snake->turn = TURN_LEFT;
 	}
-	else if (keystate[SDLK_RIGHT] && !keystate[SDLK_LEFT])
+	else if (keystate[KEY_RIGHT] && !keystate[KEY_LEFT])
 	{
 		snake->turn = TURN_RIGHT;
 	}
@@ -321,7 +358,7 @@ void snake_control(struct Snake *snake)
 	{
 		snake->turn = TURN_NONE;
 	}
-	if (keystate[SDLK_UP])
+	if (keystate[KEY_ACCELERATE])
 	{
 		snake->v = snake->base_v * SNAKE_V_MULTIPLIER;
 		snake->w = snake->base_w * SNAKE_W_MULTIPLIER;
@@ -427,7 +464,16 @@ void collectible_draw(const struct Collectible *col)
 	double y = col->segment.pos.y;
 	camera_convert(&x, &y);
 	filledCircleColor(screen, x, y, col->segment.r, col->segment.color);
+#ifndef ANTIALIASING_OFF
 	aacircleRGBA(screen, x, y, col->segment.r, 0, 0, 0, 255);
+#endif
+}
+
+void camera_prepare(const struct Snake *target, enum CameraMode cm)
+{
+	camera.cm = cm;
+	camera.center = &target->segments[0].pos;
+	camera.angle = &target->dir;
 }
 
 void camera_convert(double *x, double *y)
@@ -513,7 +559,14 @@ void wall_draw(const struct Wall *wall)
 	double y2 = wall->end.y;
 	camera_convert(&x1, &y1);
 	camera_convert(&x2, &y2);
-	thickLineRGBA(screen, x1, y1, x2, y2, 2 * wall->r + 1, 0, 0, 0, 255);
+	/* thickLineRGBA seems to have buggy implementation in MiyooCFW */
+	//thickLineRGBA(screen, x1, y1, x2, y2, 2 * wall->r + 1, 0, 0, 0, 255);
+	struct Vec2D voff = { .x = x2 - x1, .y = y2 - y1};
+	vmul(&voff, wall->r / vlen(&voff));
+	voff = (struct Vec2D){ .x = -voff.y, .y = voff.x};
+	lineRGBA(screen, x1 + voff.x, y1 + voff.y, x2 + voff.x, y2 + voff.y, 0, 0, 0, 255);
+	lineRGBA(screen, x1 - voff.x, y1 - voff.y, x2 - voff.x, y2 - voff.y, 0, 0, 0, 255);
+
 	filledCircleRGBA(screen, x1, y1, wall->r, 0, 0, 0, 255);
 	filledCircleRGBA(screen, x2, y2, wall->r, 0, 0, 0, 255);
 }

@@ -1,0 +1,18 @@
+.PHONY: all clean
+
+TARGET=finalsnake
+SRC=main.c
+PKGS=sdl SDL_gfx
+GCC=arm-linux-gcc
+SYSROOT=$(shell $(GCC) --print-sysroot)
+PKGCONFIG=$(SYSROOT)/../../bin/pkg-config
+CFLAGS = $(shell $(PKGCONFIG) --cflags $(PKGS)) -Ofast -march=armv5te -mtune=arm926ej-s -DMIYOO
+LDFLAGS = $(shell $(PKGCONFIG) --libs $(PKGS)) -lm
+
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	$(GCC) $(CFLAGS) -o $@ $(SRC) $(LDFLAGS)
+
+clean:
+	rm -rf $(TARGET)
