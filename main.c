@@ -8,6 +8,7 @@
 #if defined(MIYOO)
 #define SCREEN_BPP						(16)
 #define FPS_LIMIT						(60)
+#define ANTIALIASING_OFF
 #else
 #define SCREEN_BPP						(32)
 #define FPS_LIMIT						(60)
@@ -24,13 +25,15 @@
 #define KEY_NEXT_CM						SDLK_BACKSPACE
 #define KEY_QUIT						SDLK_ESCAPE
 
-#define ANTIALIASING_OFF
-
 #define MAX_SNAKE_LEN					(1024)
 #define START_LEN						(5)
-#define SEGMENT_DISTANCE				(10.0)
+#define HEAD_RADIUS						(5.0)
+#define BODY_RADIUS						(4.0)
+#define SEGMENT_DISTANCE				(6.0)
+#define COLLECTIBLE_RADIUS				(4.0)
 #define COLLECTIBLE_COUNT				(3)
-#define COLLECTIBLE_SAFE_DISTANCE		(20.0)
+#define COLLECTIBLE_SAFE_DISTANCE		(25.0)
+#define EAT_DEPTH						(2.0)
 #define SNAKE_V_MULTIPLIER				(2.0)
 #define SNAKE_W_MULTIPLIER				(1.5)
 
@@ -171,7 +174,7 @@ int main(int argc, char *argv[])
 	srand(time(NULL));
 	enum CameraMode cm = CM_FIXED;
 	struct Room room;
-	room_init(&room, 0);
+	room_init(&room, 2);
 
 	SDL_Event event;
 	bool quit = false;
@@ -280,13 +283,13 @@ double vdist(const struct Vec2D *vec1, const struct Vec2D *vec2)
 
 void snake_init(struct Snake *snake)
 {
-	snake->base_v = 70.0;
+	snake->base_v = 40.0;
 	snake->base_w = M_PI;
 	snake->dir = 0.0;
 	snake->len = 1;
 	snake->segments[0] = (struct Segment)
-		{ .pos = { .x = SCREEN_WIDTH/2, .y = SCREEN_HEIGHT/2 },
-			.r = 10.0,
+		{ .pos = { .x = SCREEN_WIDTH/2, .y = SCREEN_HEIGHT - 20.0 },
+			.r = HEAD_RADIUS,
 			.color = SDLGFX_COLOR(0, 0, 0)
 		};
 	snake->turn = TURN_NONE;
@@ -376,7 +379,7 @@ void snake_add_segments(struct Snake *snake, int count)
 	snake->len += count;
 	for (int i = start; i < snake->len; ++i)
 	{
-		snake->segments[i].r = 7.0;
+		snake->segments[i].r = BODY_RADIUS;
 		snake->segments[i].pos = snake->segments[start - 1].pos;
 		snake->segments[i].color = SDLGFX_COLOR(rand() % 32, rand() % 32, rand() % 32);
 	}
@@ -388,7 +391,7 @@ void snake_eat_collectibles(struct Snake *snake, struct Room *room)
 	{
 		struct Vec2D diff = snake->segments[0].pos;
 		vsub(&diff, &room->col[i].segment.pos);
-		if (vlen(&diff) < (snake->segments[0].r + room->col[i].segment.r))
+		if (vlen(&diff) < (snake->segments[0].r + room->col[i].segment.r - EAT_DEPTH))
 		{
 			snake_add_segments(snake, 1);
 			collectible_generate(&room->col[i], room);
@@ -427,7 +430,7 @@ void collectible_generate(struct Collectible *col, const struct Room *room)
 {
 	col->segment = (struct Segment)
 		{ .pos = { .x = 0, .y = 0 },
-			.r = 5.0,
+			.r = COLLECTIBLE_RADIUS,
 			.color = SDLGFX_COLOR(rand() % 255, rand() % 255, rand() % 255)
 		};
 
@@ -559,16 +562,21 @@ void wall_draw(const struct Wall *wall)
 	double y2 = wall->end.y;
 	camera_convert(&x1, &y1);
 	camera_convert(&x2, &y2);
+
+#if defined(MIYOO)
 	/* thickLineRGBA seems to have buggy implementation in MiyooCFW */
-	//thickLineRGBA(screen, x1, y1, x2, y2, 2 * wall->r + 1, 0, 0, 0, 255);
-	struct Vec2D voff = { .x = x2 - x1, .y = y2 - y1};
+	struct Vec2D voff = { .x = x2 - x1, .y = y2 - y1 };
 	vmul(&voff, wall->r / vlen(&voff));
-	voff = (struct Vec2D){ .x = -voff.y, .y = voff.x};
+	voff = (struct Vec2D){ .x = -voff.y, .y = voff.x };
 	lineRGBA(screen, x1 + voff.x, y1 + voff.y, x2 + voff.x, y2 + voff.y, 0, 0, 0, 255);
 	lineRGBA(screen, x1 - voff.x, y1 - voff.y, x2 - voff.x, y2 - voff.y, 0, 0, 0, 255);
-
+	circleRGBA(screen, x1, y1, wall->r, 0, 0, 0, 255);
+	circleRGBA(screen, x2, y2, wall->r, 0, 0, 0, 255);
+#else
+	thickLineRGBA(screen, x1, y1, x2, y2, 2 * wall->r + 1, 0, 0, 0, 255);
 	filledCircleRGBA(screen, x1, y1, wall->r, 0, 0, 0, 255);
 	filledCircleRGBA(screen, x2, y2, wall->r, 0, 0, 0, 255);
+#endif
 }
 
 struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos)
@@ -607,12 +615,61 @@ void room_init(struct Room *room, int level)
 {
 	snake_init(&room->snake);
 	snake_add_segments(&room->snake, START_LEN - 1);
-	room->wallnum = 4;
-	room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
-	wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
-	wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
-	wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
-	wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
+	switch (level)
+	{
+		case 0: {
+			room->wallnum = 5;
+			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
+			wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
+			wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
+			wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
+			wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
+			wall_init(&room->walls[4], SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2,
+				3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2, 10);
+			break;
+		};
+		case 1: {
+			room->wallnum = 7;
+			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
+			wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
+			wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
+			wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
+			wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
+			wall_init(&room->walls[4], SCREEN_WIDTH / 6, SCREEN_HEIGHT / 2,
+				5 * SCREEN_WIDTH / 6, SCREEN_HEIGHT / 2, 10);
+			wall_init(&room->walls[5], SCREEN_WIDTH / 6, SCREEN_HEIGHT / 4,
+				SCREEN_WIDTH / 6, 3 * SCREEN_HEIGHT / 4, 10);
+			wall_init(&room->walls[6], 5 * SCREEN_WIDTH / 6, SCREEN_HEIGHT / 4,
+				5 * SCREEN_WIDTH / 6, 3 * SCREEN_HEIGHT / 4, 10);
+			break;
+		};
+		case 2:
+			room->wallnum = 13;
+			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
+			wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
+			wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
+			wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
+			wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
+			wall_init(&room->walls[4], 3 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2,
+				4 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2, 6);
+			wall_init(&room->walls[5], 3 * SCREEN_WIDTH / 7, 3 * SCREEN_HEIGHT / 7,
+				3 * SCREEN_WIDTH / 7, 4 * SCREEN_HEIGHT / 7, 6);
+			wall_init(&room->walls[6], 4 * SCREEN_WIDTH / 7, 3 * SCREEN_HEIGHT / 7,
+				4 * SCREEN_WIDTH / 7, 4 * SCREEN_HEIGHT / 7, 6);
+			wall_init(&room->walls[7], 0, SCREEN_HEIGHT / 2,
+				2 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2, 6);
+			wall_init(&room->walls[8], 5 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2,
+				SCREEN_WIDTH, SCREEN_HEIGHT / 2, 6);
+			wall_init(&room->walls[9], 2 * SCREEN_WIDTH / 12, SCREEN_HEIGHT / 4 - SCREEN_HEIGHT / 16,
+				3 * SCREEN_WIDTH / 12, SCREEN_HEIGHT / 4 + SCREEN_HEIGHT / 16, 6);
+			wall_init(&room->walls[10], 10 * SCREEN_WIDTH / 12, SCREEN_HEIGHT / 4 - SCREEN_HEIGHT / 16,
+				9 * SCREEN_WIDTH / 12, SCREEN_HEIGHT / 4 + SCREEN_HEIGHT / 16, 6);
+			wall_init(&room->walls[11], 3 * SCREEN_WIDTH / 12, 3 * SCREEN_HEIGHT / 4 - SCREEN_HEIGHT / 16,
+				2 * SCREEN_WIDTH / 12,  3 * SCREEN_HEIGHT / 4 + SCREEN_HEIGHT / 16, 6);
+			wall_init(&room->walls[12], 9 * SCREEN_WIDTH / 12, 3 * SCREEN_HEIGHT / 4 - SCREEN_HEIGHT / 16,
+				10 * SCREEN_WIDTH / 12,  3 * SCREEN_HEIGHT / 4 + SCREEN_HEIGHT / 16, 6);
+			break;
+	}
 	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
 	{
 		// needs to be done after wall init
