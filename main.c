@@ -12,6 +12,7 @@
 #else
 #define SCREEN_BPP						(32)
 #define FPS_LIMIT						(60)
+//#define ANTIALIASING_OFF
 #endif
 
 #define KEY_LEFT						SDLK_LEFT
@@ -88,6 +89,11 @@ struct Collectible
 	struct Segment segment;
 };
 
+struct Obstacle
+{
+	struct Segment segment;
+};
+
 struct Wall
 {
 	struct Vec2D start;
@@ -108,6 +114,8 @@ struct Room
 	struct Collectible col[COLLECTIBLE_COUNT];
 	struct Wall *walls;
 	int wallnum;
+	struct Obstacle *obs;
+	int obnum;
 };
 
 SDL_Surface *screen = NULL;
@@ -136,6 +144,7 @@ void snake_add_segments(struct Snake *snake, int count);
 void snake_eat_collectibles(struct Snake *snake, struct Room *room);
 bool snake_check_selfcollision(const struct Snake *snake);
 bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], int wallnum);
+bool snake_check_obstaclecollision(const struct Snake *snake, struct Obstacle obs[], int obnum);
 
 void collectible_generate(struct Collectible *col, const struct Room *room);
 void collectible_process(struct Collectible *col, double dt);
@@ -144,6 +153,9 @@ void collectible_draw(const struct Collectible *col);
 void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, double r);
 void wall_draw(const struct Wall *wall);
 struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos);
+
+void obstacle_init(struct Obstacle *obstacle, double x, double y, double r);
+void obstacle_draw(const struct Obstacle *obstacle);
 
 void room_init(struct Room *room, int level);
 void room_dispose(struct Room *room);
@@ -426,6 +438,20 @@ bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], i
 	return false;
 }
 
+bool snake_check_obstaclecollision(const struct Snake *snake, struct Obstacle obs[], int obnum)
+{
+	for (int i = 0; i < obnum; ++i)
+	{
+		struct Vec2D diff = snake->segments[0].pos;
+		vsub(&diff, &obs[i].segment.pos);
+		if (vlen(&diff) < (snake->segments[0].r + obs[i].segment.r))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void collectible_generate(struct Collectible *col, const struct Room *room)
 {
 	col->segment = (struct Segment)
@@ -448,6 +474,14 @@ void collectible_generate(struct Collectible *col, const struct Room *room)
 		for (int i = 0; i < room->wallnum; ++i)
 		{
 			if (vlen(wall_dist(&room->walls[i], &col->segment.pos)) < COLLECTIBLE_SAFE_DISTANCE)
+			{
+				safe = false;
+				break;
+			}
+		}
+		for (int i = 0; i < room->obnum; ++i)
+		{
+			if (vdist(&col->segment.pos, &room->obs[i].segment.pos) < COLLECTIBLE_SAFE_DISTANCE)
 			{
 				safe = false;
 				break;
@@ -611,10 +645,37 @@ struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos)
 	return &dist_vector;
 }
 
+void obstacle_init(struct Obstacle *obstacle, double x, double y, double r)
+{
+	obstacle->segment.pos = (struct Vec2D){ .x = x, .y = y };
+	obstacle->segment.r = r;
+	obstacle->segment.color = 0;
+}
+
+void obstacle_draw(const struct Obstacle *obstacle)
+{
+	double x = obstacle->segment.pos.x;
+	double y = obstacle->segment.pos.y;
+	camera_convert(&x, &y);
+
+#if defined(MIYOO)
+	circleRGBA(screen, x, y, obstacle->segment.r, 0, 0, 0, 255);
+#else
+	filledCircleRGBA(screen, x, y, obstacle->segment.r, 0, 0, 0, 255);
+#ifndef ANTIALIASING_OFF
+	aacircleRGBA(screen, x, y, obstacle->segment.r, 0, 0, 0, 255);
+#endif
+#endif
+}
+
 void room_init(struct Room *room, int level)
 {
 	snake_init(&room->snake);
 	snake_add_segments(&room->snake, START_LEN - 1);
+	room->wallnum = 0;
+	room->walls = NULL;
+	room->obnum = 0;
+	room->obs = NULL;
 	switch (level)
 	{
 		case 0: {
@@ -644,7 +705,7 @@ void room_init(struct Room *room, int level)
 			break;
 		};
 		case 2:
-			room->wallnum = 13;
+			room->wallnum = 9;
 			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
 			wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
 			wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
@@ -660,14 +721,12 @@ void room_init(struct Room *room, int level)
 				2 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2, 6);
 			wall_init(&room->walls[8], 5 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2,
 				SCREEN_WIDTH, SCREEN_HEIGHT / 2, 6);
-			wall_init(&room->walls[9], 2 * SCREEN_WIDTH / 12, SCREEN_HEIGHT / 4 - SCREEN_HEIGHT / 16,
-				3 * SCREEN_WIDTH / 12, SCREEN_HEIGHT / 4 + SCREEN_HEIGHT / 16, 6);
-			wall_init(&room->walls[10], 10 * SCREEN_WIDTH / 12, SCREEN_HEIGHT / 4 - SCREEN_HEIGHT / 16,
-				9 * SCREEN_WIDTH / 12, SCREEN_HEIGHT / 4 + SCREEN_HEIGHT / 16, 6);
-			wall_init(&room->walls[11], 3 * SCREEN_WIDTH / 12, 3 * SCREEN_HEIGHT / 4 - SCREEN_HEIGHT / 16,
-				2 * SCREEN_WIDTH / 12,  3 * SCREEN_HEIGHT / 4 + SCREEN_HEIGHT / 16, 6);
-			wall_init(&room->walls[12], 9 * SCREEN_WIDTH / 12, 3 * SCREEN_HEIGHT / 4 - SCREEN_HEIGHT / 16,
-				10 * SCREEN_WIDTH / 12,  3 * SCREEN_HEIGHT / 4 + SCREEN_HEIGHT / 16, 6);
+			room->obnum = 4;
+			room->obs = (struct Obstacle *)malloc(room->obnum * sizeof(struct Obstacle));
+			obstacle_init(&room->obs[0], SCREEN_WIDTH / 5, SCREEN_HEIGHT / 4, 16.0);
+			obstacle_init(&room->obs[1], 4 * SCREEN_WIDTH / 5, SCREEN_HEIGHT / 4, 16.0);
+			obstacle_init(&room->obs[2], SCREEN_WIDTH / 5, 3 * SCREEN_HEIGHT / 4, 16.0);
+			obstacle_init(&room->obs[3], 4 * SCREEN_WIDTH / 5, 3 * SCREEN_HEIGHT / 4, 16.0);
 			break;
 	}
 	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
@@ -685,6 +744,12 @@ void room_dispose(struct Room *room)
 		free(room->walls);
 		room->walls = NULL;
 		room->wallnum = 0;
+	}
+	if (room->obs)
+	{
+		free(room->obs);
+		room->obs = NULL;
+		room->obnum = 0;
 	}
 }
 
@@ -711,11 +776,16 @@ void room_draw(const struct Room *room)
 	{
 		wall_draw(&room->walls[i]);
 	}
+	for (int i = 0; i < room->obnum; ++i)
+	{
+		obstacle_draw(&room->obs[i]);
+	}
 	snake_draw(&room->snake);
 }
 
 bool room_check_gameover(const struct Room *room)
 {
 	return snake_check_selfcollision(&room->snake) ||
-		snake_check_wallcollision(&room->snake, room->walls, room->wallnum);
+		snake_check_wallcollision(&room->snake, room->walls, room->wallnum) ||
+		snake_check_obstaclecollision(&room->snake, room->obs, room->obnum);
 }
