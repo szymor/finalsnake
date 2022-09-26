@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <SDL_gfxPrimitives.h>
+#include <stdlib.h>
 #include <time.h>
 #include "main.h"
 #include "game.h"
@@ -7,6 +8,7 @@
 // maximum number of settings per option
 #define MENU_SETTINGS_MAX			(3)
 #define MENU_SETTING_STR_LEN_MAX	(16)
+#define WORD_WRAP_MAX_LINE_LEN		(40)
 
 enum GameState
 {
@@ -57,8 +59,12 @@ void gs_menu_process(void);
 void gs_game_process(void);
 void gs_gameover_process(void);
 
+void get_random_proverb(char *proverb, int size);
+void wrap_text_lines(char *text);
+
 int main(int argc, char *argv[])
 {
+	srand(time(NULL));
 	SDL_CHECK(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) < 0);
 #if defined(MIYOO)
 	const Uint32 vflags = SDL_SWSURFACE | SDL_DOUBLEBUF;
@@ -93,6 +99,10 @@ int main(int argc, char *argv[])
 
 void gs_menu_process(void)
 {
+	char proverb[256];
+	get_random_proverb(proverb, 256);
+	wrap_text_lines(proverb);
+
 	int selection = 0;
 	SDL_Event event;
 	bool leave = false;
@@ -105,6 +115,17 @@ void gs_menu_process(void)
 		sprintf(text, "FINAL SNAKE");
 		stringRGBA(screen, (SCREEN_WIDTH - 8 * strlen(text)) / 2,
 			40, text, 255, 255, 255, 255);
+
+		// proverb display
+		const char *ptr = proverb;
+		int ypos = 64;
+		while (ptr[0] != 0 && ptr[1] != 0)
+		{
+			stringRGBA(screen, (SCREEN_WIDTH - 8 * strlen(ptr)) / 2,
+				ypos, ptr, 255, 255, 255, 255);
+			ypos += 12;
+			while (*ptr++ != 0);
+		}
 
 		sprintf(text, "%c LEVEL SIZE", MO_LEVELSIZE == selection ? '>' : ' ');
 		stringRGBA(screen, (SCREEN_WIDTH / 2 - 8 * strlen(text)) / 2,
@@ -280,4 +301,46 @@ void gs_gameover_process(void)
 			}
 		}
 	}
+}
+
+void get_random_proverb(char *proverb, int size)
+{
+	int lineno = 0;
+	FILE *file = NULL;
+	file = fopen("proverbs.txt", "r");
+
+	// count number of lines
+	char ch;
+	while ((ch = fgetc(file)) != EOF)
+	{
+		if ('\n' == ch)
+			++lineno;
+	}
+
+	fseek(file, 0, SEEK_SET);
+	int proverbno = rand() % lineno + 1;
+	for (int i = 0; i < proverbno; ++i)
+		fgets(proverb, size, file);
+	fclose(file);
+}
+
+void wrap_text_lines(char *text)
+{
+	int ix = 0;
+	int lastws = -1;
+	int lastbr = -1;
+	while (text[ix])
+	{
+		if (' ' == text[ix])
+		{
+			lastws = ix;
+		}
+		if ((ix - lastbr) == WORD_WRAP_MAX_LINE_LEN)
+		{
+			text[lastws] = '\0';
+			lastbr = lastws;
+		}
+		++ix;
+	}
+	text[ix - 1] = '\0';
 }
