@@ -18,29 +18,6 @@ enum GameState
 	GS_QUIT
 };
 
-enum LevelSize
-{
-	LS_SMALL,
-	LS_REGULAR,
-	LS_LARGE,
-	LS_NUM
-};
-
-enum Wobbliness
-{
-	W_ABSTEINER,
-	W_NORMIE,
-	W_BOOZER,
-	W_NUM
-};
-
-enum MenuOptions
-{
-	MO_LEVELSIZE,
-	MO_WOBBLINESS,
-	MO_NUM
-};
-
 SDL_Surface *screen = NULL;
 enum GameState gamestate = GS_MENU;
 
@@ -48,7 +25,7 @@ int menu_options[MO_NUM];
 int menu_options_num[MO_NUM] = {LS_NUM, W_NUM};
 const char menu_options_text[MO_NUM][MENU_SETTINGS_MAX][MENU_SETTING_STR_LEN_MAX] = {
 	{
-		"small", "regular", "large"
+		"cage", "terrarium", "jungle"
 	},
 	{
 		"absteiner", "normie", "boozer"

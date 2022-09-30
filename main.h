@@ -27,6 +27,30 @@
 #define KEY_START						SDLK_RETURN
 #define KEY_QUIT						SDLK_ESCAPE
 
+enum LevelSize
+{
+	LS_SMALL,
+	LS_REGULAR,
+	LS_LARGE,
+	LS_NUM
+};
+
+enum Wobbliness
+{
+	W_NONE,
+	W_LITTLE,
+	W_MUCH,
+	W_NUM
+};
+
+enum MenuOptions
+{
+	MO_LEVELSIZE,
+	MO_WOBBLINESS,
+	MO_NUM
+};
+
+extern int menu_options[];
 extern SDL_Surface *screen;
 extern enum GameState gamestate;
 

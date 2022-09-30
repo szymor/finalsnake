@@ -55,7 +55,7 @@ void snake_init(struct Snake *snake)
 	snake->dir = 0.0;
 	snake->len = 1;
 	snake->segments[0] = (struct Segment)
-		{ .pos = { .x = SCREEN_WIDTH/2, .y = SCREEN_HEIGHT - 20.0 },
+		{ .pos = { .x = SCREEN_WIDTH/2, .y = SCREEN_HEIGHT/2 },
 			.r = HEAD_RADIUS,
 			.color = SDLGFX_COLOR(0, 0, 0)
 		};
@@ -207,6 +207,57 @@ bool snake_check_obstaclecollision(const struct Snake *snake, struct Obstacle ob
 	return false;
 }
 
+bool generate_safe_position(
+	const struct Room *room, struct Vec2D *pos,
+	int x_from, int x_to, int y_from, int y_to,
+	double safe_distance, int max_attempts,
+	bool snake, bool wall, bool obstacle)
+{
+	int attempts = 0;
+	bool safe;
+	do {
+		safe = true;
+		pos->x = rand() % (x_to - x_from) + x_from;
+		pos->y = rand() % (y_to - y_from) + y_from;
+		if (snake)
+		{
+			if (vdist(pos, &room->snake.segments[0].pos) < safe_distance)
+			{
+				safe = false;
+				++attempts;
+				continue;
+			}
+		}
+		if (wall)
+		{
+			for (int i = 0; i < room->wallnum; ++i)
+			{
+				if ((vlen(wall_dist(&room->walls[i], pos)) - room->walls[i].r) < safe_distance)
+				{
+					safe = false;
+					++attempts;
+					break;
+				}
+			}
+			if (!safe) continue;
+		}
+		if (obstacle)
+		{
+			for (int i = 0; i < room->obnum; ++i)
+			{
+				if ((vdist(pos, &room->obs[i].segment.pos) - room->obs[i].segment.r) < safe_distance)
+				{
+					safe = false;
+					++attempts;
+					break;
+				}
+			}
+			if (!safe) continue;
+		}
+	} while (!safe && (attempts < max_attempts));
+	return safe;
+}
+
 void collectible_generate(struct Collectible *col, const struct Room *room)
 {
 	col->segment = (struct Segment)
@@ -215,34 +266,13 @@ void collectible_generate(struct Collectible *col, const struct Room *room)
 			.color = SDLGFX_COLOR(rand() % 255, rand() % 255, rand() % 255)
 		};
 
-	// generate position until is safe
-	bool safe;
-	do {
-		safe = true;
-		col->segment.pos.x = rand() % SCREEN_WIDTH;
-		col->segment.pos.y = rand() % SCREEN_HEIGHT;
-		if (vdist(&col->segment.pos, &room->snake.segments[0].pos) < COLLECTIBLE_SAFE_DISTANCE)
-		{
-			safe = false;
-			continue;
-		}
-		for (int i = 0; i < room->wallnum; ++i)
-		{
-			if (vlen(wall_dist(&room->walls[i], &col->segment.pos)) < COLLECTIBLE_SAFE_DISTANCE)
-			{
-				safe = false;
-				break;
-			}
-		}
-		for (int i = 0; i < room->obnum; ++i)
-		{
-			if (vdist(&col->segment.pos, &room->obs[i].segment.pos) < COLLECTIBLE_SAFE_DISTANCE)
-			{
-				safe = false;
-				break;
-			}
-		}
-	} while (!safe);
+	if (!generate_safe_position(room, &col->segment.pos,
+		0, SCREEN_WIDTH, 0, SCREEN_HEIGHT, COLLECTIBLE_SAFE_DISTANCE,
+		100, true, true, true))
+	{
+		// spawn it on top of the snake :)
+		col->segment.pos = room->snake.segments[0].pos;
+	}
 }
 
 void collectible_process(struct Collectible *col, double dt)
@@ -425,25 +455,54 @@ void obstacle_draw(const struct Obstacle *obstacle)
 
 void room_init(struct Room *room, int level)
 {
-	snake_init(&room->snake);
-	snake_add_segments(&room->snake, START_LEN - 1);
+	struct Vec2D pos;
+
 	room->wallnum = 0;
 	room->walls = NULL;
 	room->obnum = 0;
 	room->obs = NULL;
-	switch (level)
+
+	switch (menu_options[MO_LEVELSIZE])
 	{
-		case 0: {
-			room->wallnum = 5;
+		case LS_SMALL:
+			snake_init(&room->snake);
+			snake_add_segments(&room->snake, START_LEN - 1);
+			camera_prepare(&room->snake, CM_FIXED);
+			room->wallnum = 4;
 			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
 			wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
 			wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
 			wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
 			wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
-			wall_init(&room->walls[4], SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2,
-				3 * SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2, 10);
+			room->obnum = rand() % (MAX_OBNUM_SMALL / 2) + (MAX_OBNUM_SMALL / 2);
+			room->obs = (struct Obstacle *)malloc(room->obnum * sizeof(struct Obstacle));
+			for (int i = 0; i < room->obnum; ++i)
+			{
+				if (!generate_safe_position(room, &pos,
+					2 * MAX_OB_SIZE, SCREEN_WIDTH - 2 * MAX_OB_SIZE,
+					2 * MAX_OB_SIZE, SCREEN_HEIGHT - 2 * MAX_OB_SIZE,
+					MAX_OB_SIZE + MIN_OB_SIZE, 100, true, false, true))
+				{
+					/* out of the game field
+					 * we cannot break the loop because
+					 * we need to fill whole the allocated memory
+					 */
+					pos.x = -100;
+					pos.y = -100;
+				}
+				obstacle_init(&room->obs[i], pos.x, pos.y,
+					rand() % (MAX_OB_SIZE - MIN_OB_SIZE) + MIN_OB_SIZE);
+			}
 			break;
-		};
+		case LS_REGULAR:
+			camera_prepare(&room->snake, CM_TRACKING);
+			break;
+		case LS_LARGE:
+			camera_prepare(&room->snake, CM_TPP);
+			break;
+	}
+
+	/*
 		case 1: {
 			room->wallnum = 7;
 			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
@@ -484,12 +543,13 @@ void room_init(struct Room *room, int level)
 			obstacle_init(&room->obs[3], 4 * SCREEN_WIDTH / 5, 3 * SCREEN_HEIGHT / 4, 16.0);
 			break;
 	}
+	*/
+
 	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
 	{
 		// needs to be done after wall init
 		collectible_generate(&room->col[i], room);
 	}
-	camera_prepare(&room->snake, CM_FIXED);
 }
 
 void room_dispose(struct Room *room)

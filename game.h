@@ -11,10 +11,16 @@
 #define SEGMENT_DISTANCE				(6.0)
 #define COLLECTIBLE_RADIUS				(4.0)
 #define COLLECTIBLE_COUNT				(3)
-#define COLLECTIBLE_SAFE_DISTANCE		(25.0)
+#define COLLECTIBLE_SAFE_DISTANCE		(15.0)
 #define EAT_DEPTH						(2.0)
 #define SNAKE_V_MULTIPLIER				(2.0)
 #define SNAKE_W_MULTIPLIER				(1.5)
+
+#define MIN_OB_SIZE						(12)
+#define MAX_OB_SIZE						(24)
+#define MAX_OBNUM_SMALL					(16)
+#define MAX_OBNUM_REGULAR				(72)
+#define MAX_OBNUM_LARGE					(648)
 
 #define SDL_CHECK(x) if (x) { printf("SDL: %s\n", SDL_GetError()); exit(0); }
 #define SDLGFX_COLOR(r, g, b) (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff)
@@ -108,6 +114,12 @@ struct Vec2D* vmul(struct Vec2D *dst, double scalar);
 double vdot(const struct Vec2D *vec1, const struct Vec2D *vec2);
 double vlen(const struct Vec2D *vec);
 double vdist(const struct Vec2D *vec1, const struct Vec2D *vec2);
+
+bool generate_safe_position(
+	const struct Room *room, struct Vec2D *pos,
+	int x_from, int x_to, int y_from, int y_to,
+	double safe_distance, int max_attempts,
+	bool snake, bool wall, bool obstacle);
 
 void camera_prepare(const struct Snake *target, enum CameraMode cm);
 void camera_convert(double *x, double *y);
