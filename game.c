@@ -467,6 +467,7 @@ void room_init(struct Room *room, int level)
 	switch (menu_options[MO_LEVELSIZE])
 	{
 		case LS_SMALL:
+		{
 			const int min_obstacle_size = 12;
 			const int max_obstacle_size = 24;
 			snake_init(&room->snake);
@@ -496,10 +497,76 @@ void room_init(struct Room *room, int level)
 				obstacle_init(&room->obs[i], pos.x, pos.y,
 					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
 			}
-			break;
+		} break;
 		case LS_REGULAR:
+		{
+			const int min_obstacle_size = 8;
+			const int max_obstacle_size = 12;
+			snake_init(&room->snake);
+			room->snake.segments[0].pos = (struct Vec2D){ .x = 0, .y = 0 };
+			snake_add_segments(&room->snake, START_LEN - 1);
 			camera_prepare(&room->snake, CM_TRACKING);
-			break;
+			int outer_wall_num = rand() % 10 + 5;
+			room->wallnum = outer_wall_num * 2;
+			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
+			double angle = 2 * M_PI / outer_wall_num;
+			double cosfi = cos(angle);
+			double sinfi = sin(angle);
+
+			// generation of outer walls
+			pos.x = -SCREEN_WIDTH;
+			pos.y = 0;
+			for (int i = 0; i < outer_wall_num; ++i)
+			{
+				struct Vec2D pos2;
+				pos2.x = pos.x * cosfi - pos.y * sinfi;
+				pos2.y = pos.x * sinfi + pos.y * cosfi;
+				wall_init(&room->walls[i], pos.x, pos.y, pos2.x, pos2.y, 10);
+				pos = pos2;
+			}
+
+			// generation of inner walls
+			for (int i = 0; i < outer_wall_num; ++i)
+			{
+				struct Vec2D pos2;
+				pos.x = -(rand() % (SCREEN_WIDTH / 4) + 3 * SCREEN_WIDTH / 4);
+				pos.y = 0;
+				pos2.x = -(rand() % (SCREEN_WIDTH / 4) + SCREEN_WIDTH / 4);
+				pos2.y = 0;
+				for (int j = 0; j < i; ++j)
+				{
+					struct Vec2D tmp;
+					tmp = pos;
+					pos.x = tmp.x * cosfi - tmp.y * sinfi;
+					pos.y = tmp.x * sinfi + tmp.y * cosfi;
+					tmp = pos2;
+					pos2.x = tmp.x * cosfi - tmp.y * sinfi;
+					pos2.y = tmp.x * sinfi + tmp.y * cosfi;
+				}
+				wall_init(&room->walls[outer_wall_num + i], pos.x, pos.y, pos2.x, pos2.y, 6);
+			}
+
+			// generation of round obstacles
+			room->obnum = 64;
+			room->obs = (struct Obstacle *)malloc(room->obnum * sizeof(struct Obstacle));
+			for (int i = 0; i < room->obnum; ++i)
+			{
+				if (!generate_safe_position(room, &pos,
+					-SCREEN_WIDTH * 0.7, SCREEN_WIDTH * 0.7,
+					-SCREEN_WIDTH * 0.7, SCREEN_WIDTH * 0.7,
+					16, 100, true, true, true))
+				{
+					/* out of the game field
+					 * we cannot break the loop because
+					 * we need to fill whole the allocated memory
+					 */
+					pos.x = SCREEN_WIDTH * 3;
+					pos.y = SCREEN_WIDTH * 3;
+				}
+				obstacle_init(&room->obs[i], pos.x, pos.y,
+					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
+			}
+		} break;
 		case LS_LARGE:
 			camera_prepare(&room->snake, CM_TPP);
 			break;
