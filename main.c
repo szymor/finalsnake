@@ -173,7 +173,7 @@ void gs_game_process(void)
 	srand(time(NULL));
 	enum CameraMode cm = CM_FIXED;
 	struct Room room;
-	room_init(&room, 2);
+	room_init(&room);
 
 	SDL_Event event;
 	bool leave = false;
@@ -241,6 +241,7 @@ void gs_game_process(void)
 			}
 		}
 	}
+	room_dispose(&room);
 }
 
 void gs_gameover_process(void)

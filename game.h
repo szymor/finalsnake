@@ -10,7 +10,6 @@
 #define BODY_RADIUS						(4.0)
 #define SEGMENT_DISTANCE				(6.0)
 #define COLLECTIBLE_RADIUS				(4.0)
-#define COLLECTIBLE_COUNT				(3)
 #define EAT_DEPTH						(2.0)
 #define SNAKE_V_MULTIPLIER				(2.0)
 #define SNAKE_W_MULTIPLIER				(1.5)
@@ -88,11 +87,14 @@ struct Camera
 struct Room
 {
 	struct Snake snake;
-	struct Collectible col[COLLECTIBLE_COUNT];
+	struct Vec2D collectible_limit_upper_left;
+	struct Vec2D collectible_limit_bottom_right;
+	struct Collectible *collectibles;
+	int collectibles_num;
 	struct Wall *walls;
-	int wallnum;
-	struct Obstacle *obs;
-	int obnum;
+	int walls_num;
+	struct Obstacle *obstacles;
+	int obstacles_num;
 };
 
 void fps_counter(double dt);
@@ -110,7 +112,6 @@ double vdist(const struct Vec2D *vec1, const struct Vec2D *vec2);
 
 bool generate_safe_position(
 	const struct Room *room, struct Vec2D *pos,
-	int x_from, int x_to, int y_from, int y_to,
 	double safe_distance, int max_attempts,
 	bool snake, bool wall, bool obstacle);
 
@@ -138,7 +139,7 @@ struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos);
 void obstacle_init(struct Obstacle *obstacle, double x, double y, double r);
 void obstacle_draw(const struct Obstacle *obstacle);
 
-void room_init(struct Room *room, int level);
+void room_init(struct Room *room);
 void room_dispose(struct Room *room);
 void room_process(struct Room *room, double dt);
 void room_draw(const struct Room *room);

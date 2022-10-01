@@ -154,21 +154,21 @@ void snake_add_segments(struct Snake *snake, int count)
 
 void snake_eat_collectibles(struct Snake *snake, struct Room *room)
 {
-	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+	for (int i = 0; i < room->collectibles_num; ++i)
 	{
 		struct Vec2D diff = snake->segments[0].pos;
-		vsub(&diff, &room->col[i].segment.pos);
-		if (vlen(&diff) < (snake->segments[0].r + room->col[i].segment.r - EAT_DEPTH))
+		vsub(&diff, &room->collectibles[i].segment.pos);
+		if (vlen(&diff) < (snake->segments[0].r + room->collectibles[i].segment.r - EAT_DEPTH))
 		{
 			snake_add_segments(snake, 1);
-			collectible_generate(&room->col[i], room);
+			collectible_generate(&room->collectibles[i], room);
 		}
 	}
 }
 
 bool snake_check_selfcollision(const struct Snake *snake)
 {
-	for (int i = START_LEN; i < snake->len; ++i)
+	for (int i = START_LEN + 1; i < snake->len; ++i)
 	{
 		struct Vec2D diff = snake->segments[0].pos;
 		vsub(&diff, &snake->segments[i].pos);
@@ -209,10 +209,13 @@ bool snake_check_obstaclecollision(const struct Snake *snake, struct Obstacle ob
 
 bool generate_safe_position(
 	const struct Room *room, struct Vec2D *pos,
-	int x_from, int x_to, int y_from, int y_to,
 	double safe_distance, int max_attempts,
 	bool snake, bool wall, bool obstacle)
 {
+	int x_from = room->collectible_limit_upper_left.x;
+	int x_to = room->collectible_limit_bottom_right.x;
+	int y_from = room->collectible_limit_upper_left.y;
+	int y_to = room->collectible_limit_bottom_right.y;
 	int attempts = 0;
 	bool safe;
 	do {
@@ -230,7 +233,7 @@ bool generate_safe_position(
 		}
 		if (wall)
 		{
-			for (int i = 0; i < room->wallnum; ++i)
+			for (int i = 0; i < room->walls_num; ++i)
 			{
 				if ((vlen(wall_dist(&room->walls[i], pos)) - room->walls[i].r) < safe_distance)
 				{
@@ -243,9 +246,9 @@ bool generate_safe_position(
 		}
 		if (obstacle)
 		{
-			for (int i = 0; i < room->obnum; ++i)
+			for (int i = 0; i < room->obstacles_num; ++i)
 			{
-				if ((vdist(pos, &room->obs[i].segment.pos) - room->obs[i].segment.r) < safe_distance)
+				if ((vdist(pos, &room->obstacles[i].segment.pos) - room->obstacles[i].segment.r) < safe_distance)
 				{
 					safe = false;
 					++attempts;
@@ -269,8 +272,7 @@ void collectible_generate(struct Collectible *col, const struct Room *room)
 		};
 
 	if (!generate_safe_position(room, &col->segment.pos,
-		0, SCREEN_WIDTH, 0, SCREEN_HEIGHT, safe_distance,
-		100, true, true, true))
+		safe_distance, 100, true, true, true))
 	{
 		// spawn it on top of the snake :)
 		col->segment.pos = room->snake.segments[0].pos;
@@ -455,14 +457,16 @@ void obstacle_draw(const struct Obstacle *obstacle)
 #endif
 }
 
-void room_init(struct Room *room, int level)
+void room_init(struct Room *room)
 {
 	struct Vec2D pos;
 
-	room->wallnum = 0;
+	room->collectibles_num = 0;
+	room->collectibles = NULL;
+	room->walls_num = 0;
 	room->walls = NULL;
-	room->obnum = 0;
-	room->obs = NULL;
+	room->obstacles_num = 0;
+	room->obstacles = NULL;
 
 	switch (menu_options[MO_LEVELSIZE])
 	{
@@ -470,21 +474,24 @@ void room_init(struct Room *room, int level)
 		{
 			const int min_obstacle_size = 12;
 			const int max_obstacle_size = 24;
+			room->collectibles_num = 3;
+			room->collectibles = (struct Collectible *)malloc(room->collectibles_num * sizeof(struct Collectible));
+			room->collectible_limit_upper_left = (struct Vec2D){ .x = 0, .y = 0};
+			room->collectible_limit_bottom_right = (struct Vec2D){ .x = SCREEN_WIDTH, .y = SCREEN_HEIGHT};
 			snake_init(&room->snake);
 			snake_add_segments(&room->snake, START_LEN - 1);
 			camera_prepare(&room->snake, CM_FIXED);
-			room->wallnum = 4;
-			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
+			room->walls_num = 4;
+			room->walls = (struct Wall *)malloc(room->walls_num * sizeof(struct Wall));
 			wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
 			wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
 			wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
 			wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
-			room->obnum = 16;
-			room->obs = (struct Obstacle *)malloc(room->obnum * sizeof(struct Obstacle));
-			for (int i = 0; i < room->obnum; ++i)
+			room->obstacles_num = 16;
+			room->obstacles = (struct Obstacle *)malloc(room->obstacles_num * sizeof(struct Obstacle));
+			for (int i = 0; i < room->obstacles_num; ++i)
 			{
 				if (!generate_safe_position(room, &pos,
-					0, SCREEN_WIDTH, 0, SCREEN_HEIGHT,
 					48, 100, true, false, true))
 				{
 					/* out of the game field
@@ -494,7 +501,7 @@ void room_init(struct Room *room, int level)
 					pos.x = -100;
 					pos.y = -100;
 				}
-				obstacle_init(&room->obs[i], pos.x, pos.y,
+				obstacle_init(&room->obstacles[i], pos.x, pos.y,
 					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
 			}
 		} break;
@@ -502,13 +509,17 @@ void room_init(struct Room *room, int level)
 		{
 			const int min_obstacle_size = 8;
 			const int max_obstacle_size = 12;
+			room->collectibles_num = 16;
+			room->collectibles = (struct Collectible *)malloc(room->collectibles_num * sizeof(struct Collectible));
+			room->collectible_limit_upper_left = (struct Vec2D){ .x = -SCREEN_WIDTH * 0.6, .y = -SCREEN_WIDTH * 0.6};
+			room->collectible_limit_bottom_right = (struct Vec2D){ .x = SCREEN_WIDTH * 0.6, .y = SCREEN_WIDTH * 0.6};
 			snake_init(&room->snake);
 			room->snake.segments[0].pos = (struct Vec2D){ .x = 0, .y = 0 };
 			snake_add_segments(&room->snake, START_LEN - 1);
 			camera_prepare(&room->snake, CM_TRACKING);
 			int outer_wall_num = rand() % 10 + 5;
-			room->wallnum = outer_wall_num * 2;
-			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
+			room->walls_num = outer_wall_num * 2;
+			room->walls = (struct Wall *)malloc(room->walls_num * sizeof(struct Wall));
 			double angle = 2 * M_PI / outer_wall_num;
 			double cosfi = cos(angle);
 			double sinfi = sin(angle);
@@ -547,14 +558,12 @@ void room_init(struct Room *room, int level)
 			}
 
 			// generation of round obstacles
-			room->obnum = 64;
-			room->obs = (struct Obstacle *)malloc(room->obnum * sizeof(struct Obstacle));
-			for (int i = 0; i < room->obnum; ++i)
+			room->obstacles_num = 64;
+			room->obstacles = (struct Obstacle *)malloc(room->obstacles_num * sizeof(struct Obstacle));
+			for (int i = 0; i < room->obstacles_num; ++i)
 			{
 				if (!generate_safe_position(room, &pos,
-					-SCREEN_WIDTH * 0.7, SCREEN_WIDTH * 0.7,
-					-SCREEN_WIDTH * 0.7, SCREEN_WIDTH * 0.7,
-					16, 100, true, true, true))
+					32.0, 100, true, true, true))
 				{
 					/* out of the game field
 					 * we cannot break the loop because
@@ -563,7 +572,7 @@ void room_init(struct Room *room, int level)
 					pos.x = SCREEN_WIDTH * 3;
 					pos.y = SCREEN_WIDTH * 3;
 				}
-				obstacle_init(&room->obs[i], pos.x, pos.y,
+				obstacle_init(&room->obstacles[i], pos.x, pos.y,
 					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
 			}
 		} break;
@@ -572,69 +581,32 @@ void room_init(struct Room *room, int level)
 			break;
 	}
 
-	/*
-		case 1: {
-			room->wallnum = 7;
-			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
-			wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
-			wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
-			wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
-			wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
-			wall_init(&room->walls[4], SCREEN_WIDTH / 6, SCREEN_HEIGHT / 2,
-				5 * SCREEN_WIDTH / 6, SCREEN_HEIGHT / 2, 10);
-			wall_init(&room->walls[5], SCREEN_WIDTH / 6, SCREEN_HEIGHT / 4,
-				SCREEN_WIDTH / 6, 3 * SCREEN_HEIGHT / 4, 10);
-			wall_init(&room->walls[6], 5 * SCREEN_WIDTH / 6, SCREEN_HEIGHT / 4,
-				5 * SCREEN_WIDTH / 6, 3 * SCREEN_HEIGHT / 4, 10);
-			break;
-		};
-		case 2:
-			room->wallnum = 9;
-			room->walls = (struct Wall *)malloc(room->wallnum * sizeof(struct Wall));
-			wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
-			wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
-			wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
-			wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
-			wall_init(&room->walls[4], 3 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2,
-				4 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2, 6);
-			wall_init(&room->walls[5], 3 * SCREEN_WIDTH / 7, 3 * SCREEN_HEIGHT / 7,
-				3 * SCREEN_WIDTH / 7, 4 * SCREEN_HEIGHT / 7, 6);
-			wall_init(&room->walls[6], 4 * SCREEN_WIDTH / 7, 3 * SCREEN_HEIGHT / 7,
-				4 * SCREEN_WIDTH / 7, 4 * SCREEN_HEIGHT / 7, 6);
-			wall_init(&room->walls[7], 0, SCREEN_HEIGHT / 2,
-				2 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2, 6);
-			wall_init(&room->walls[8], 5 * SCREEN_WIDTH / 7, SCREEN_HEIGHT / 2,
-				SCREEN_WIDTH, SCREEN_HEIGHT / 2, 6);
-			room->obnum = 4;
-			room->obs = (struct Obstacle *)malloc(room->obnum * sizeof(struct Obstacle));
-			obstacle_init(&room->obs[0], SCREEN_WIDTH / 5, SCREEN_HEIGHT / 4, 16.0);
-			obstacle_init(&room->obs[1], 4 * SCREEN_WIDTH / 5, SCREEN_HEIGHT / 4, 16.0);
-			obstacle_init(&room->obs[2], SCREEN_WIDTH / 5, 3 * SCREEN_HEIGHT / 4, 16.0);
-			obstacle_init(&room->obs[3], 4 * SCREEN_WIDTH / 5, 3 * SCREEN_HEIGHT / 4, 16.0);
-			break;
-	}
-	*/
-
-	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+	for (int i = 0; i < room->collectibles_num; ++i)
 	{
 		// needs to be done after wall init
-		collectible_generate(&room->col[i], room);
+		collectible_generate(&room->collectibles[i], room);
 	}
 }
 
 void room_dispose(struct Room *room)
 {
+	if (room->collectibles)
+	{
+		free(room->collectibles);
+		room->collectibles = NULL;
+		room->collectibles_num = 0;
+	}
 	if (room->walls)
 	{
 		free(room->walls);
 		room->walls = NULL;
-		room->wallnum = 0;
+		room->walls_num = 0;
 	}
-	if (room->obs)
+	if (room->obstacles)
 	{
-		free(room->obs);
-		room->obs = NULL;
-		room->obnum = 0;
+		free(room->obstacles);
+		room->obstacles = NULL;
+		room->obstacles_num = 0;
 	}
 }
 
@@ -642,9 +614,9 @@ void room_process(struct Room *room, double dt)
 {
 	snake_control(&room->snake);
 
-	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+	for (int i = 0; i < room->collectibles_num; ++i)
 	{
-		collectible_process(&room->col[i], dt);
+		collectible_process(&room->collectibles[i], dt);
 	}
 	snake_process(&room->snake, dt);
 	snake_eat_collectibles(&room->snake, room);
@@ -653,17 +625,17 @@ void room_process(struct Room *room, double dt)
 void room_draw(const struct Room *room)
 {
 	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 128, 128, 128));
-	for (int i = 0; i < COLLECTIBLE_COUNT; ++i)
+	for (int i = 0; i < room->collectibles_num; ++i)
 	{
-		collectible_draw(&room->col[i]);
+		collectible_draw(&room->collectibles[i]);
 	}
-	for (int i = 0; i < room->wallnum; ++i)
+	for (int i = 0; i < room->walls_num; ++i)
 	{
 		wall_draw(&room->walls[i]);
 	}
-	for (int i = 0; i < room->obnum; ++i)
+	for (int i = 0; i < room->obstacles_num; ++i)
 	{
-		obstacle_draw(&room->obs[i]);
+		obstacle_draw(&room->obstacles[i]);
 	}
 	snake_draw(&room->snake);
 }
@@ -671,6 +643,6 @@ void room_draw(const struct Room *room)
 bool room_check_gameover(const struct Room *room)
 {
 	return snake_check_selfcollision(&room->snake) ||
-		snake_check_wallcollision(&room->snake, room->walls, room->wallnum) ||
-		snake_check_obstaclecollision(&room->snake, room->obs, room->obnum);
+		snake_check_wallcollision(&room->snake, room->walls, room->walls_num) ||
+		snake_check_obstaclecollision(&room->snake, room->obstacles, room->obstacles_num);
 }
