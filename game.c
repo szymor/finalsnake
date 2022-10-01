@@ -517,12 +517,12 @@ void room_init(struct Room *room)
 			room->snake.segments[0].pos = (struct Vec2D){ .x = 0, .y = 0 };
 			snake_add_segments(&room->snake, START_LEN - 1);
 			camera_prepare(&room->snake, CM_TRACKING);
-			int outer_wall_num = rand() % 10 + 5;
+			const int outer_wall_num = rand() % 10 + 5;
 			room->walls_num = outer_wall_num * 2;
 			room->walls = (struct Wall *)malloc(room->walls_num * sizeof(struct Wall));
-			double angle = 2 * M_PI / outer_wall_num;
-			double cosfi = cos(angle);
-			double sinfi = sin(angle);
+			const double angle = 2 * M_PI / outer_wall_num;
+			const double cosfi = cos(angle);
+			const double sinfi = sin(angle);
 
 			// generation of outer walls
 			pos.x = -SCREEN_WIDTH;
@@ -577,8 +577,77 @@ void room_init(struct Room *room)
 			}
 		} break;
 		case LS_LARGE:
+		{
+			const int wall_thickness = 10;
+			const int min_obstacle_size = 24;
+			const int max_obstacle_size = 32;
+			room->collectibles_num = 32;
+			room->collectibles = (struct Collectible *)malloc(room->collectibles_num * sizeof(struct Collectible));
+			room->collectible_limit_upper_left = (struct Vec2D){ .x = -SCREEN_WIDTH, .y = -SCREEN_WIDTH };
+			room->collectible_limit_bottom_right = (struct Vec2D){ .x = SCREEN_WIDTH, .y = SCREEN_WIDTH };
+			snake_init(&room->snake);
+			room->snake.segments[0].pos = (struct Vec2D){ .x = 0, .y = 0 };
+			snake_add_segments(&room->snake, START_LEN - 1);
 			camera_prepare(&room->snake, CM_TPP);
-			break;
+			int points_no = 12;//rand() % 8 + 5;
+			room->walls_num = points_no * 2;
+			room->walls = (struct Wall *)malloc(room->walls_num * sizeof(struct Wall));
+			const double radius = SCREEN_WIDTH * 2;
+			const double alpha = M_PI * (points_no - 2) / points_no;
+			const double fi = M_PI - alpha;
+			const double cosfi = cos(fi);
+			const double sinfi = sin(fi);
+			const double cos2fi = cos(2 * fi);
+			const double sin2fi = sin(2 * fi);
+			pos.x = 0;
+			pos.y = 0 - radius;
+			struct Vec2D star_side;
+			star_side.x = radius * sin(M_PI / points_no) / cos(fi / 2);
+			star_side.y = 0;
+			// rotate the star side vector to maintain a nice origin
+			struct Vec2D tmp = star_side;
+			star_side.x = tmp.x * cos(alpha) - tmp.y * sin(alpha);
+			star_side.y = tmp.x * sin(alpha) + tmp.y * cos(alpha);
+			for (int i = 0; i < points_no; ++i)
+			{
+				// draw a side
+				struct Vec2D pos2 = pos;
+				vadd(&pos2, &star_side);
+				wall_init(&room->walls[i * 2], pos.x, pos.y, pos2.x, pos2.y, wall_thickness);
+				// turn counterclockwise
+				tmp = star_side;
+				star_side.x = tmp.x * cosfi - tmp.y * sinfi;
+				star_side.y = tmp.x * sinfi + tmp.y * cosfi;
+				// draw another side
+				pos = pos2;
+				vadd(&pos2, &star_side);
+				wall_init(&room->walls[i * 2 + 1], pos.x, pos.y, pos2.x, pos2.y, wall_thickness);
+				// turn clockwise twice as much
+				tmp = star_side;
+				star_side.x = tmp.x * cos2fi + tmp.y * sin2fi;
+				star_side.y = -tmp.x * sin2fi + tmp.y * cos2fi;
+				pos = pos2;
+			}
+
+			// obstacles
+			room->obstacles_num = 256;
+			room->obstacles = (struct Obstacle *)malloc(room->obstacles_num * sizeof(struct Obstacle));
+			for (int i = 0; i < room->obstacles_num; ++i)
+			{
+				if (!generate_safe_position(room, &pos,
+					max_obstacle_size + 8.0, 100, true, true, true))
+				{
+					/* out of the game field
+					 * we cannot break the loop because
+					 * we need to fill whole the allocated memory
+					 */
+					pos.x = SCREEN_WIDTH * 3;
+					pos.y = SCREEN_WIDTH * 3;
+				}
+				obstacle_init(&room->obstacles[i], pos.x, pos.y,
+					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
+			}
+		} break;
 	}
 
 	for (int i = 0; i < room->collectibles_num; ++i)
