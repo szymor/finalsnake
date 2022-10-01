@@ -11,16 +11,9 @@
 #define SEGMENT_DISTANCE				(6.0)
 #define COLLECTIBLE_RADIUS				(4.0)
 #define COLLECTIBLE_COUNT				(3)
-#define COLLECTIBLE_SAFE_DISTANCE		(15.0)
 #define EAT_DEPTH						(2.0)
 #define SNAKE_V_MULTIPLIER				(2.0)
 #define SNAKE_W_MULTIPLIER				(1.5)
-
-#define MIN_OB_SIZE						(12)
-#define MAX_OB_SIZE						(24)
-#define MAX_OBNUM_SMALL					(16)
-#define MAX_OBNUM_REGULAR				(72)
-#define MAX_OBNUM_LARGE					(648)
 
 #define SDL_CHECK(x) if (x) { printf("SDL: %s\n", SDL_GetError()); exit(0); }
 #define SDLGFX_COLOR(r, g, b) (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff)

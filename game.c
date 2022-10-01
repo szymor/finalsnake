@@ -260,6 +260,8 @@ bool generate_safe_position(
 
 void collectible_generate(struct Collectible *col, const struct Room *room)
 {
+	const int safe_distance = 15;
+
 	col->segment = (struct Segment)
 		{ .pos = { .x = 0, .y = 0 },
 			.r = COLLECTIBLE_RADIUS,
@@ -267,7 +269,7 @@ void collectible_generate(struct Collectible *col, const struct Room *room)
 		};
 
 	if (!generate_safe_position(room, &col->segment.pos,
-		0, SCREEN_WIDTH, 0, SCREEN_HEIGHT, COLLECTIBLE_SAFE_DISTANCE,
+		0, SCREEN_WIDTH, 0, SCREEN_HEIGHT, safe_distance,
 		100, true, true, true))
 	{
 		// spawn it on top of the snake :)
@@ -465,6 +467,8 @@ void room_init(struct Room *room, int level)
 	switch (menu_options[MO_LEVELSIZE])
 	{
 		case LS_SMALL:
+			const int min_obstacle_size = 12;
+			const int max_obstacle_size = 24;
 			snake_init(&room->snake);
 			snake_add_segments(&room->snake, START_LEN - 1);
 			camera_prepare(&room->snake, CM_FIXED);
@@ -474,14 +478,13 @@ void room_init(struct Room *room, int level)
 			wall_init(&room->walls[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
 			wall_init(&room->walls[2], 0, 0, 0, SCREEN_HEIGHT, 10);
 			wall_init(&room->walls[3], SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 10);
-			room->obnum = rand() % (MAX_OBNUM_SMALL / 2) + (MAX_OBNUM_SMALL / 2);
+			room->obnum = 16;
 			room->obs = (struct Obstacle *)malloc(room->obnum * sizeof(struct Obstacle));
 			for (int i = 0; i < room->obnum; ++i)
 			{
 				if (!generate_safe_position(room, &pos,
-					2 * MAX_OB_SIZE, SCREEN_WIDTH - 2 * MAX_OB_SIZE,
-					2 * MAX_OB_SIZE, SCREEN_HEIGHT - 2 * MAX_OB_SIZE,
-					MAX_OB_SIZE + MIN_OB_SIZE, 100, true, false, true))
+					0, SCREEN_WIDTH, 0, SCREEN_HEIGHT,
+					48, 100, true, false, true))
 				{
 					/* out of the game field
 					 * we cannot break the loop because
@@ -491,7 +494,7 @@ void room_init(struct Room *room, int level)
 					pos.y = -100;
 				}
 				obstacle_init(&room->obs[i], pos.x, pos.y,
-					rand() % (MAX_OB_SIZE - MIN_OB_SIZE) + MIN_OB_SIZE);
+					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
 			}
 			break;
 		case LS_REGULAR:
