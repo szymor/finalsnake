@@ -27,25 +27,25 @@
 #define KEY_START						SDLK_RETURN
 #define KEY_QUIT						SDLK_ESCAPE
 
-enum LevelSize
+enum LevelType
 {
-	LS_SMALL,
-	LS_REGULAR,
-	LS_LARGE,
-	LS_NUM
+	LT_CAGE,
+	LT_POLYGON,
+	LT_STAR,
+	LT_NUM
 };
 
 enum Wobbliness
 {
-	W_NONE,
-	W_LITTLE,
-	W_MUCH,
+	W_ABSTEINER,
+	W_NORMIE,
+	W_BOOZER,
 	W_NUM
 };
 
 enum MenuOptions
 {
-	MO_LEVELSIZE,
+	MO_LEVELTYPE,
 	MO_WOBBLINESS,
 	MO_NUM
 };

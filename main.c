@@ -22,10 +22,10 @@ SDL_Surface *screen = NULL;
 enum GameState gamestate = GS_MENU;
 
 int menu_options[MO_NUM];
-int menu_options_num[MO_NUM] = {LS_NUM, W_NUM};
+int menu_options_num[MO_NUM] = {LT_NUM, W_NUM};
 const char menu_options_text[MO_NUM][MENU_SETTINGS_MAX][MENU_SETTING_STR_LEN_MAX] = {
 	{
-		"cage", "terrarium", "jungle"
+		"cage", "polygon", "star"
 	},
 	{
 		"absteiner", "normie", "boozer"
@@ -104,10 +104,10 @@ void gs_menu_process(void)
 			while (*ptr++ != 0);
 		}
 
-		sprintf(text, "%c LEVEL SIZE", MO_LEVELSIZE == selection ? '>' : ' ');
+		sprintf(text, "%c LEVEL TYPE", MO_LEVELTYPE == selection ? '>' : ' ');
 		stringRGBA(screen, (SCREEN_WIDTH / 2 - 8 * strlen(text)) / 2,
 			SCREEN_HEIGHT - 8 - 72, text, 255, 255, 255, 255);
-		sprintf(text, "%s", menu_options_text[MO_LEVELSIZE][menu_options[MO_LEVELSIZE]]);
+		sprintf(text, "%s", menu_options_text[MO_LEVELTYPE][menu_options[MO_LEVELTYPE]]);
 		stringRGBA(screen, SCREEN_WIDTH / 2 + (SCREEN_WIDTH / 2 - 8 * strlen(text)) / 2,
 			SCREEN_HEIGHT - 8 - 72, text, 255, 255, 255, 255);
 

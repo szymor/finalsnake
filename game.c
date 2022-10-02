@@ -468,9 +468,9 @@ void room_init(struct Room *room)
 	room->obstacles_num = 0;
 	room->obstacles = NULL;
 
-	switch (menu_options[MO_LEVELSIZE])
+	switch (menu_options[MO_LEVELTYPE])
 	{
-		case LS_SMALL:
+		case LT_CAGE:
 		{
 			const int min_obstacle_size = 12;
 			const int max_obstacle_size = 24;
@@ -505,7 +505,7 @@ void room_init(struct Room *room)
 					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
 			}
 		} break;
-		case LS_REGULAR:
+		case LT_POLYGON:
 		{
 			const int min_obstacle_size = 8;
 			const int max_obstacle_size = 12;
@@ -576,7 +576,7 @@ void room_init(struct Room *room)
 					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
 			}
 		} break;
-		case LS_LARGE:
+		case LT_STAR:
 		{
 			const int wall_thickness = 10;
 			const int min_obstacle_size = 24;
