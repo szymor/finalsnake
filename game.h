@@ -48,6 +48,12 @@ enum Turn
 	TURN_RIGHT
 };
 
+enum CollectibleGenerationMode
+{
+	CGM_CARTESIAN,
+	CGM_POLAR
+};
+
 struct Snake
 {
 	double v;	// linear speed
@@ -87,8 +93,20 @@ struct Camera
 struct Room
 {
 	struct Snake snake;
-	struct Vec2D collectible_limit_upper_left;
-	struct Vec2D collectible_limit_bottom_right;
+	enum CollectibleGenerationMode cg_mode;
+	union
+	{
+		struct
+		{
+			// origin at (0,0)
+			double radius;
+		} cg_polar;
+		struct
+		{
+			struct Vec2D upper_left;
+			struct Vec2D bottom_right;
+		} cg_cartesian;
+	};
 	struct Collectible *collectibles;
 	int collectibles_num;
 	struct Wall *walls;
