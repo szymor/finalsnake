@@ -6,6 +6,6 @@ As the name suggests, it is yet another implementation of a popular Snake game. 
 ## to do
 - graphics,
 - more detailed background (makes easier to navigate in some camera modes),
+- custom level support,
 - [miyoo] fix CM_TPP bug (camera gets awkward sometimes) - probably it is a fault of buggy sin/cos implementation in CFW,
-- procedural generation of levels,
 - various kinds of collectibles with different effects (longer, faster, shorter, slower, drunk, level warp, etc.) and different behaviour (static, running away, wandering).

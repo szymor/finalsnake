@@ -572,12 +572,8 @@ void room_init(struct Room *room)
 			const int wall_thickness = 10;
 			room->collectibles_num = 5;
 			room->collectibles = (struct Collectible *)malloc(room->collectibles_num * sizeof(struct Collectible));
-			snake_init(&room->snake);
-			room->snake.segments[0].pos = (struct Vec2D){ .x = 0, .y = 0 };
-			snake_add_segments(&room->snake, START_LEN - 1);
-			camera_prepare(&room->snake, CM_TPP);
 			int points_no = rand() % 5 + 5;
-			room->walls_num = points_no * 2;
+			room->walls_num = points_no * 3;
 			room->walls = (struct Wall *)malloc(room->walls_num * sizeof(struct Wall));
 			// radius of the circumscribed circle of the star
 			const double radius = SCREEN_WIDTH;
@@ -588,7 +584,7 @@ void room_init(struct Room *room)
 			const double cos2fi = cos(2 * fi);
 			const double sin2fi = sin(2 * fi);
 			pos.x = 0;
-			pos.y = 0 - radius;
+			pos.y = -radius;
 			struct Vec2D star_side;
 			star_side.x = radius * sin(M_PI / points_no) / cos(fi / 2);
 			star_side.y = 0;
@@ -596,6 +592,7 @@ void room_init(struct Room *room)
 			struct Vec2D tmp = star_side;
 			star_side.x = tmp.x * cos(alpha) - tmp.y * sin(alpha);
 			star_side.y = tmp.x * sin(alpha) + tmp.y * cos(alpha);
+			double inner_coef = 0;
 			for (int i = 0; i < points_no; ++i)
 			{
 				// draw a side
@@ -607,9 +604,12 @@ void room_init(struct Room *room)
 					const double inradius = vlen(&pos2);
 					room->cg_mode = CGM_POLAR;
 					room->cg_polar.radius = inradius;
+					inner_coef = inradius / radius;
 				}
 				//--- here it ends
-				wall_init(&room->walls[i * 2], pos.x, pos.y, pos2.x, pos2.y, wall_thickness);
+				wall_init(&room->walls[i * 3 + 1], pos.x, pos.y, pos2.x, pos2.y, wall_thickness);
+				// draw an inner wall
+				wall_init(&room->walls[i * 3], pos.x * inner_coef, pos.y * inner_coef, 0, 0, 6);
 				// turn counterclockwise
 				tmp = star_side;
 				star_side.x = tmp.x * cosfi - tmp.y * sinfi;
@@ -617,13 +617,19 @@ void room_init(struct Room *room)
 				// draw another side
 				pos = pos2;
 				vadd(&pos2, &star_side);
-				wall_init(&room->walls[i * 2 + 1], pos.x, pos.y, pos2.x, pos2.y, wall_thickness);
+				wall_init(&room->walls[i * 3 + 2], pos.x, pos.y, pos2.x, pos2.y, wall_thickness);
 				// turn clockwise twice as much
 				tmp = star_side;
 				star_side.x = tmp.x * cos2fi + tmp.y * sin2fi;
 				star_side.y = -tmp.x * sin2fi + tmp.y * cos2fi;
 				pos = pos2;
 			}
+
+			// snake initialization
+			snake_init(&room->snake);
+			room->snake.segments[0].pos = (struct Vec2D){ .x = 15, .y = -radius / 3 };
+			snake_add_segments(&room->snake, START_LEN - 1);
+			camera_prepare(&room->snake, CM_TPP);
 		} break;
 	}
 
