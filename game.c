@@ -523,57 +523,49 @@ void room_init(struct Room *room)
 		} break;
 		case LT_POLYGON:
 		{
-			const int outer_wall_num = rand() % 8 + 5;
+			const int outer_wall_num = rand() % 6 + 3;
 			const int circumradius = SCREEN_HEIGHT;
 			room->collectibles_num = 4;
 			room->collectibles = (struct Collectible *)malloc(room->collectibles_num * sizeof(struct Collectible));
 			room->cg_mode = CGM_POLAR;
 			room->cg_polar.radius = circumradius * cos(M_PI / outer_wall_num);
-			snake_init(&room->snake);
-			room->snake.segments[0].pos = (struct Vec2D){ .x = 0, .y = 0 };
-			snake_add_segments(&room->snake, START_LEN - 1);
-			camera_prepare(&room->snake, CM_TRACKING);
 			room->walls_num = outer_wall_num;
 			room->walls = (struct Wall *)malloc(room->walls_num * sizeof(struct Wall));
+			room->obstacles_num = outer_wall_num + 1;
+			room->obstacles = (struct Obstacle *)malloc(room->obstacles_num * sizeof(struct Obstacle));
+			obstacle_init(&room->obstacles[0], 0, 0, room->cg_polar.radius / 2);
 			const double angle = 2 * M_PI / outer_wall_num;
 			const double cosfi = cos(angle);
 			const double sinfi = sin(angle);
 
-			// generation of outer walls
+			// generation of outer walls and obstacles
 			// radius of the circumscribed circle of the polygon
-			pos.x = -circumradius;
+			pos.x = circumradius;
 			pos.y = 0;
+			struct Vec2D obstacle_pos;
+			obstacle_pos.x = (circumradius - room->obstacles[0].segment.r) / 2 + room->obstacles[0].segment.r;
+			obstacle_pos.y = 0;
 			for (int i = 0; i < outer_wall_num; ++i)
 			{
+				// calculation of the endpoint of the wall
 				struct Vec2D pos2;
 				pos2.x = pos.x * cosfi - pos.y * sinfi;
 				pos2.y = pos.x * sinfi + pos.y * cosfi;
 				wall_init(&room->walls[i], pos.x, pos.y, pos2.x, pos2.y, 10);
+				// calculation of the obstacle
+				obstacle_init(&room->obstacles[i + 1], obstacle_pos.x, obstacle_pos.y, 17);
+				pos.x = obstacle_pos.x * cosfi - obstacle_pos.y * sinfi;
+				pos.y = obstacle_pos.x * sinfi + obstacle_pos.y * cosfi;
+				obstacle_pos = pos;
+				// endpoint assignment for the next iteration
 				pos = pos2;
 			}
 
-			// generation of inner walls
-			/*
-			for (int i = 0; i < outer_wall_num; ++i)
-			{
-				struct Vec2D pos2;
-				pos.x = -(rand() % (SCREEN_WIDTH / 4) + 3 * SCREEN_WIDTH / 4);
-				pos.y = 0;
-				pos2.x = -(rand() % (SCREEN_WIDTH / 4) + SCREEN_WIDTH / 4);
-				pos2.y = 0;
-				for (int j = 0; j < i; ++j)
-				{
-					struct Vec2D tmp;
-					tmp = pos;
-					pos.x = tmp.x * cosfi - tmp.y * sinfi;
-					pos.y = tmp.x * sinfi + tmp.y * cosfi;
-					tmp = pos2;
-					pos2.x = tmp.x * cosfi - tmp.y * sinfi;
-					pos2.y = tmp.x * sinfi + tmp.y * cosfi;
-				}
-				wall_init(&room->walls[outer_wall_num + i], pos.x, pos.y, pos2.x, pos2.y, 6);
-			}
-			*/
+			// snake initialization
+			snake_init(&room->snake);
+			room->snake.segments[0].pos = (struct Vec2D){ .x = 0, .y = -room->cg_polar.radius / 2 - HEAD_RADIUS - 1 };
+			snake_add_segments(&room->snake, START_LEN - 1);
+			camera_prepare(&room->snake, CM_TRACKING);
 		} break;
 		case LT_STAR:
 		{
@@ -584,7 +576,7 @@ void room_init(struct Room *room)
 			room->snake.segments[0].pos = (struct Vec2D){ .x = 0, .y = 0 };
 			snake_add_segments(&room->snake, START_LEN - 1);
 			camera_prepare(&room->snake, CM_TPP);
-			int points_no = rand() % 8 + 5;
+			int points_no = rand() % 5 + 5;
 			room->walls_num = points_no * 2;
 			room->walls = (struct Wall *)malloc(room->walls_num * sizeof(struct Wall));
 			// radius of the circumscribed circle of the star
