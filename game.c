@@ -676,7 +676,62 @@ void room_process(struct Room *room, double dt)
 
 void room_draw(const struct Room *room)
 {
+	// draw background
+#ifdef CHECKERBOARD_OFF
 	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 128, 128, 128));
+#else
+	const Uint16 light_gray = SDL_MapRGB(screen->format, 128, 128, 128);
+	const Uint16 dark_gray = SDL_MapRGB(screen->format, 192, 192, 192);
+	int ox = 0;
+	int oy = 0;
+	switch (camera.cm)
+	{
+		case CM_TRACKING:
+			ox = (int)(camera.center->x - SCREEN_WIDTH / 2) % (CHECKERBOARD_SIZE * 2);
+			if (ox < 0) ox = (CHECKERBOARD_SIZE * 2) + ox;
+			oy = (int)(camera.center->y - SCREEN_HEIGHT / 2) % (CHECKERBOARD_SIZE * 2);
+			if (oy < 0) oy = (CHECKERBOARD_SIZE * 2) + oy;
+		case CM_FIXED:
+			SDL_LockSurface(screen);
+			const int bpp = screen->format->BytesPerPixel;
+			for (int y = 0; y < SCREEN_HEIGHT; ++y)
+				for (int x = 0; x < SCREEN_WIDTH; ++x)
+				{
+					const int xx = x + ox;
+					const int yy = y + oy;
+					Uint8 *p = (Uint8 *)screen->pixels + y * screen->pitch + x * bpp;
+					*(Uint16 *)p = ((xx / CHECKERBOARD_SIZE) % 2) ^ ((yy / CHECKERBOARD_SIZE) % 2) ? light_gray : dark_gray;
+				}
+			SDL_UnlockSurface(screen);
+			break;
+		case CM_TPP:
+		{
+			SDL_LockSurface(screen);
+			const int bpp = screen->format->BytesPerPixel;
+			const double sinfi = sin(*camera.angle);
+			const double cosfi = cos(*camera.angle);
+			for (int y = 0; y < SCREEN_HEIGHT; ++y)
+				for (int x = 0; x < SCREEN_WIDTH; ++x)
+				{
+					double bx = x - SCREEN_WIDTH / 2;
+					double by = y - SCREEN_HEIGHT / 2;
+					double ax = bx * cosfi - by * sinfi;
+					double ay = bx * sinfi + by * cosfi;
+					const int xx = ax + camera.center->x;
+					const int yy = ay + camera.center->y;
+					Uint8 *p = (Uint8 *)screen->pixels + y * screen->pitch + x * bpp;
+					int xm = xx / CHECKERBOARD_SIZE;
+					if (xx < 0) xm = -xm + 1;
+					xm %= 2;
+					int ym = yy / CHECKERBOARD_SIZE;
+					if (yy < 0) ym = -ym + 1;
+					ym %= 2;
+					*(Uint16 *)p = xm ^ ym ? light_gray : dark_gray;
+				}
+			SDL_UnlockSurface(screen);
+		} break;
+	}
+#endif
 	for (int i = 0; i < room->collectibles_num; ++i)
 	{
 		collectible_draw(&room->collectibles[i]);

@@ -10,9 +10,10 @@
 #define FPS_LIMIT						(60)
 #define ANTIALIASING_OFF
 #else
-#define SCREEN_BPP						(32)
+#define SCREEN_BPP						(16)
 #define FPS_LIMIT						(60)
 //#define ANTIALIASING_OFF
+//#define CHECKERBOARD_OFF
 #endif
 
 #define KEY_LEFT						SDLK_LEFT
