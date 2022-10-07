@@ -62,6 +62,8 @@ struct Snake
 	double w;	// angular speed
 	double base_w;
 	double dir;	// angular position
+	double wobbly_freq;
+	double wobbly_phase;	// wobbly phase
 	int len;
 	struct Vec2D pieces[MAX_SNAKE_LEN];
 	enum Turn turn;

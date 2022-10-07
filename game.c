@@ -59,6 +59,17 @@ void snake_init(struct Snake *snake)
 			.y = SCREEN_HEIGHT/2
 		};
 	snake->turn = TURN_NONE;
+	snake->wobbly_freq = 0;
+	snake->wobbly_phase = 0;
+	switch (menu_options[MO_WOBBLINESS])
+	{
+		case W_NORMIE:
+			snake->wobbly_freq = 2.4;
+			break;
+		case W_BOOZER:
+			snake->wobbly_freq = 0.8;
+			break;
+	}
 }
 
 void snake_process(struct Snake *snake, double dt)
@@ -76,10 +87,15 @@ void snake_process(struct Snake *snake, double dt)
 			break;
 	}
 
+	// wobbliness calculation
+	snake->wobbly_phase += dt;
+	SINCOS_FIX_INC(snake->wobbly_phase);
+	double wobbly = 0.5 * sin(2 * M_PI * snake->wobbly_freq * snake->wobbly_phase);
+
 	// head calculation
 	struct Vec2D offset = {
-		.x = snake->v * sin(snake->dir) * dt,
-		.y = -snake->v * cos(snake->dir) * dt
+		.x = snake->v * sin(snake->dir + wobbly) * dt,
+		.y = -snake->v * cos(snake->dir + wobbly) * dt
 	};
 	vadd(&snake->pieces[0], &offset);
 
