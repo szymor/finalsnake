@@ -4,12 +4,13 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-#define MAX_SNAKE_LEN					(1024)
-#define START_LEN						(5)
+#define MAX_SNAKE_LEN					(10240)
+#define START_LEN						(60)
 #define HEAD_RADIUS						(5.0)
 #define BODY_RADIUS						(4.0)
-#define SEGMENT_DISTANCE				(6.0)
-#define COLLECTIBLE_RADIUS				(4.0)
+#define PIECE_DISTANCE					(0.5)
+#define PIECE_DRAW_INCREMENT			(12)
+#define CONSUMABLE_RADIUS				(4.0)
 #define EAT_DEPTH						(2.0)
 #define SNAKE_V_MULTIPLIER				(2.0)
 #define SNAKE_W_MULTIPLIER				(1.5)

@@ -90,9 +90,9 @@ void snake_process(struct Snake *snake, double dt)
 		diff = snake->pieces[i-1];
 		vsub(&diff, &snake->pieces[i]);
 		double dlen = vlen(&diff);
-		if (dlen > SEGMENT_DISTANCE)
+		if (dlen > PIECE_DISTANCE)
 		{
-			vmul(&diff, (dlen - SEGMENT_DISTANCE) / dlen);
+			vmul(&diff, (dlen - PIECE_DISTANCE) / dlen);
 			vadd(&snake->pieces[i], &diff);
 		}
 	}
@@ -101,17 +101,27 @@ void snake_process(struct Snake *snake, double dt)
 void snake_draw(const struct Snake *snake)
 {
 	Uint32 black = SDLGFX_COLOR(0, 0, 0);
-	for (int i = snake->len - 1; i >= 0; --i)
+
+	// body
+	for (int i = snake->len - 1; i > 0; i -= PIECE_DRAW_INCREMENT)
 	{
 		double x = snake->pieces[i].x;
 		double y = snake->pieces[i].y;
-		double r = i == 0 ? HEAD_RADIUS : BODY_RADIUS;
 		camera_convert(&x, &y);
-		filledCircleColor(screen, x, y, r, black);
+		filledCircleColor(screen, x, y, BODY_RADIUS, black);
 #ifndef ANTIALIASING_OFF
-		aacircleRGBA(screen, x, y, r, 64, 64, 64, 255);
+		aacircleRGBA(screen, x, y, BODY_RADIUS, 64, 64, 64, 255);
 #endif
 	}
+
+	// head
+	double x = snake->pieces[0].x;
+	double y = snake->pieces[0].y;
+	camera_convert(&x, &y);
+	filledCircleColor(screen, x, y, HEAD_RADIUS, black);
+#ifndef ANTIALIASING_OFF
+	aacircleRGBA(screen, x, y, HEAD_RADIUS, 64, 64, 64, 255);
+#endif
 }
 
 void snake_control(struct Snake *snake)
@@ -163,7 +173,7 @@ void snake_eat_consumables(struct Snake *snake, struct Room *room)
 		vsub(&diff, &room->consumables[i].segment.pos);
 		if (vlen(&diff) < (HEAD_RADIUS + room->consumables[i].segment.r - EAT_DEPTH))
 		{
-			snake_add_segments(snake, 1);
+			snake_add_segments(snake, PIECE_DRAW_INCREMENT);
 			consumable_generate(&room->consumables[i], room);
 		}
 	}
@@ -281,7 +291,7 @@ void consumable_generate(struct Consumable *col, const struct Room *room)
 
 	col->segment = (struct Segment)
 		{ .pos = { .x = 0, .y = 0 },
-			.r = COLLECTIBLE_RADIUS,
+			.r = CONSUMABLE_RADIUS,
 		};
 	col->color = SDLGFX_COLOR(rand() % 255, rand() % 255, rand() % 255);
 
