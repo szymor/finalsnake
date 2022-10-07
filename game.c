@@ -54,10 +54,9 @@ void snake_init(struct Snake *snake)
 	snake->base_w = M_PI;
 	snake->dir = 0.0;
 	snake->len = 1;
-	snake->segments[0] = (struct Segment)
-		{ .pos = { .x = SCREEN_WIDTH/2, .y = SCREEN_HEIGHT/2 },
-			.r = HEAD_RADIUS,
-			.color = SDLGFX_COLOR(0, 0, 0)
+	snake->pieces[0] = (struct Vec2D) {
+			.x = SCREEN_WIDTH/2,
+			.y = SCREEN_HEIGHT/2
 		};
 	snake->turn = TURN_NONE;
 }
@@ -82,33 +81,35 @@ void snake_process(struct Snake *snake, double dt)
 		.x = snake->v * sin(snake->dir) * dt,
 		.y = -snake->v * cos(snake->dir) * dt
 	};
-	vadd(&snake->segments[0].pos, &offset);
+	vadd(&snake->pieces[0], &offset);
 
 	// tail calculation
 	for (int i = 1; i < snake->len; ++i)
 	{
 		struct Vec2D diff;
-		diff = snake->segments[i-1].pos;
-		vsub(&diff, &snake->segments[i].pos);
+		diff = snake->pieces[i-1];
+		vsub(&diff, &snake->pieces[i]);
 		double dlen = vlen(&diff);
 		if (dlen > SEGMENT_DISTANCE)
 		{
 			vmul(&diff, (dlen - SEGMENT_DISTANCE) / dlen);
-			vadd(&snake->segments[i].pos, &diff);
+			vadd(&snake->pieces[i], &diff);
 		}
 	}
 }
 
 void snake_draw(const struct Snake *snake)
 {
+	Uint32 black = SDLGFX_COLOR(0, 0, 0);
 	for (int i = snake->len - 1; i >= 0; --i)
 	{
-		double x = snake->segments[i].pos.x;
-		double y = snake->segments[i].pos.y;
+		double x = snake->pieces[i].x;
+		double y = snake->pieces[i].y;
+		double r = i == 0 ? HEAD_RADIUS : BODY_RADIUS;
 		camera_convert(&x, &y);
-		filledCircleColor(screen, x, y, snake->segments[i].r, snake->segments[i].color);
+		filledCircleColor(screen, x, y, r, black);
 #ifndef ANTIALIASING_OFF
-		aacircleRGBA(screen, x, y, snake->segments[i].r, 64, 64, 64, 255);
+		aacircleRGBA(screen, x, y, r, 64, 64, 64, 255);
 #endif
 	}
 }
@@ -150,9 +151,7 @@ void snake_add_segments(struct Snake *snake, int count)
 	}
 	for (int i = start; i < snake->len; ++i)
 	{
-		snake->segments[i].r = BODY_RADIUS;
-		snake->segments[i].pos = snake->segments[start - 1].pos;
-		snake->segments[i].color = SDLGFX_COLOR(rand() % 32, rand() % 32, rand() % 32);
+		snake->pieces[i] = snake->pieces[start - 1];
 	}
 }
 
@@ -160,9 +159,9 @@ void snake_eat_collectibles(struct Snake *snake, struct Room *room)
 {
 	for (int i = 0; i < room->collectibles_num; ++i)
 	{
-		struct Vec2D diff = snake->segments[0].pos;
+		struct Vec2D diff = snake->pieces[0];
 		vsub(&diff, &room->collectibles[i].segment.pos);
-		if (vlen(&diff) < (snake->segments[0].r + room->collectibles[i].segment.r - EAT_DEPTH))
+		if (vlen(&diff) < (HEAD_RADIUS + room->collectibles[i].segment.r - EAT_DEPTH))
 		{
 			snake_add_segments(snake, 1);
 			collectible_generate(&room->collectibles[i], room);
@@ -174,9 +173,9 @@ bool snake_check_selfcollision(const struct Snake *snake)
 {
 	for (int i = START_LEN + 1; i < snake->len; ++i)
 	{
-		struct Vec2D diff = snake->segments[0].pos;
-		vsub(&diff, &snake->segments[i].pos);
-		if (vlen(&diff) < (snake->segments[0].r + snake->segments[i].r))
+		struct Vec2D diff = snake->pieces[0];
+		vsub(&diff, &snake->pieces[i]);
+		if (vlen(&diff) < (HEAD_RADIUS + BODY_RADIUS))
 		{
 			return true;
 		}
@@ -188,8 +187,8 @@ bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], i
 {
 	for (int i = 0; i < wallnum; ++i)
 	{
-		struct Vec2D *vector_distance = wall_dist(&walls[i], &snake->segments[0].pos);
-		if (vlen(vector_distance) < (snake->segments[0].r + walls[i].r))
+		struct Vec2D *vector_distance = wall_dist(&walls[i], &snake->pieces[0]);
+		if (vlen(vector_distance) < (HEAD_RADIUS + walls[i].r))
 		{
 			return true;
 		}
@@ -201,9 +200,9 @@ bool snake_check_obstaclecollision(const struct Snake *snake, struct Obstacle ob
 {
 	for (int i = 0; i < obnum; ++i)
 	{
-		struct Vec2D diff = snake->segments[0].pos;
+		struct Vec2D diff = snake->pieces[0];
 		vsub(&diff, &obs[i].segment.pos);
-		if (vlen(&diff) < (snake->segments[0].r + obs[i].segment.r))
+		if (vlen(&diff) < (HEAD_RADIUS + obs[i].segment.r))
 		{
 			return true;
 		}
@@ -239,7 +238,7 @@ bool generate_safe_position(
 		}
 		if (snake)
 		{
-			if (vdist(pos, &room->snake.segments[0].pos) < safe_distance)
+			if (vdist(pos, &room->snake.pieces[0]) < safe_distance)
 			{
 				safe = false;
 				++attempts;
@@ -283,14 +282,14 @@ void collectible_generate(struct Collectible *col, const struct Room *room)
 	col->segment = (struct Segment)
 		{ .pos = { .x = 0, .y = 0 },
 			.r = COLLECTIBLE_RADIUS,
-			.color = SDLGFX_COLOR(rand() % 255, rand() % 255, rand() % 255)
 		};
+	col->color = SDLGFX_COLOR(rand() % 255, rand() % 255, rand() % 255);
 
 	if (!generate_safe_position(room, &col->segment.pos,
 		safe_distance, 100, true, true, true))
 	{
 		// spawn it on top of the snake :)
-		col->segment.pos = room->snake.segments[0].pos;
+		col->segment.pos = room->snake.pieces[0];
 	}
 }
 
@@ -304,7 +303,7 @@ void collectible_draw(const struct Collectible *col)
 	double x = col->segment.pos.x;
 	double y = col->segment.pos.y;
 	camera_convert(&x, &y);
-	filledCircleColor(screen, x, y, col->segment.r, col->segment.color);
+	filledCircleColor(screen, x, y, col->segment.r, col->color);
 #ifndef ANTIALIASING_OFF
 	aacircleRGBA(screen, x, y, col->segment.r, 0, 0, 0, 255);
 #endif
@@ -313,7 +312,7 @@ void collectible_draw(const struct Collectible *col)
 void camera_prepare(const struct Snake *target, enum CameraMode cm)
 {
 	camera.cm = cm;
-	camera.center = &target->segments[0].pos;
+	camera.center = &target->pieces[0];
 	camera.angle = &target->dir;
 }
 
@@ -453,7 +452,6 @@ void obstacle_init(struct Obstacle *obstacle, double x, double y, double r)
 {
 	obstacle->segment.pos = (struct Vec2D){ .x = x, .y = y };
 	obstacle->segment.r = r;
-	obstacle->segment.color = 0;
 }
 
 void obstacle_draw(const struct Obstacle *obstacle)
@@ -563,7 +561,7 @@ void room_init(struct Room *room)
 
 			// snake initialization
 			snake_init(&room->snake);
-			room->snake.segments[0].pos = (struct Vec2D){ .x = 0, .y = -room->cg_polar.radius / 2 - HEAD_RADIUS - 1 };
+			room->snake.pieces[0] = (struct Vec2D){ .x = 0, .y = -room->cg_polar.radius / 2 - HEAD_RADIUS - 1 };
 			snake_add_segments(&room->snake, START_LEN - 1);
 			camera_prepare(&room->snake, CM_TRACKING);
 		} break;
@@ -627,7 +625,7 @@ void room_init(struct Room *room)
 
 			// snake initialization
 			snake_init(&room->snake);
-			room->snake.segments[0].pos = (struct Vec2D){ .x = 15, .y = -radius / 3 };
+			room->snake.pieces[0] = (struct Vec2D){ .x = 15, .y = -radius / 3 };
 			snake_add_segments(&room->snake, START_LEN - 1);
 			camera_prepare(&room->snake, CM_TPP);
 		} break;

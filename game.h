@@ -31,7 +31,6 @@ struct Segment
 {
 	struct Vec2D pos;
 	double r;
-	Uint32 color;
 };
 
 enum CameraMode
@@ -63,13 +62,14 @@ struct Snake
 	double base_w;
 	double dir;	// angular position
 	int len;
-	struct Segment segments[MAX_SNAKE_LEN];
+	struct Vec2D pieces[MAX_SNAKE_LEN];
 	enum Turn turn;
 };
 
 struct Collectible
 {
 	struct Segment segment;
+	Uint32 color;
 };
 
 struct Obstacle
