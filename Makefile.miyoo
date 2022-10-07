@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 TARGET=finalsnake
-SRC=main.c
+SRC=main.c game.c
 PKGS=sdl SDL_gfx
 GCC=arm-linux-gcc
 SYSROOT=$(shell $(GCC) --print-sysroot)

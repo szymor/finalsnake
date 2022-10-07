@@ -36,7 +36,7 @@ void gs_menu_process(void);
 void gs_game_process(void);
 void gs_gameover_process(void);
 
-void get_random_proverb(char *proverb, int size);
+bool get_random_proverb(char *proverb, int size);
 void wrap_text_lines(char *text);
 
 int main(int argc, char *argv[])
@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
 	screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, vflags);
 	SDL_CHECK(screen == NULL);
 	SDL_WM_SetCaption("Final Snake prealpha", NULL);
+	SDL_ShowCursor(SDL_DISABLE);
 
 	while (GS_QUIT != gamestate)
 	{
@@ -76,7 +77,7 @@ int main(int argc, char *argv[])
 
 void gs_menu_process(void)
 {
-	char proverb[256];
+	char proverb[256] = "If you need a helping hand, you'll find one at the end of your arm.\n";
 	get_random_proverb(proverb, 256);
 	wrap_text_lines(proverb);
 
@@ -281,14 +282,16 @@ void gs_gameover_process(void)
 	}
 }
 
-void get_random_proverb(char *proverb, int size)
+bool get_random_proverb(char *proverb, int size)
 {
 	int lineno = 0;
 	FILE *file = NULL;
 	file = fopen("proverbs.txt", "r");
+	if (NULL == file)
+		return false;
 
 	// count number of lines
-	char ch;
+	int ch;
 	while ((ch = fgetc(file)) != EOF)
 	{
 		if ('\n' == ch)
@@ -300,6 +303,7 @@ void get_random_proverb(char *proverb, int size)
 	for (int i = 0; i < proverbno; ++i)
 		fgets(proverb, size, file);
 	fclose(file);
+	return true;
 }
 
 void wrap_text_lines(char *text)

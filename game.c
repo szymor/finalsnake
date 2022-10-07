@@ -125,9 +125,7 @@ void snake_draw(const struct Snake *snake)
 		double y = snake->pieces[i].y;
 		camera_convert(&x, &y);
 		filledCircleColor(screen, x, y, BODY_RADIUS, black);
-#ifndef ANTIALIASING_OFF
-		aacircleRGBA(screen, x, y, BODY_RADIUS, 64, 64, 64, 255);
-#endif
+		circleRGBA(screen, x, y, BODY_RADIUS, 64, 64, 64, 255);
 	}
 
 	// head
@@ -135,9 +133,7 @@ void snake_draw(const struct Snake *snake)
 	double y = snake->pieces[0].y;
 	camera_convert(&x, &y);
 	filledCircleColor(screen, x, y, HEAD_RADIUS, black);
-#ifndef ANTIALIASING_OFF
-	aacircleRGBA(screen, x, y, HEAD_RADIUS, 64, 64, 64, 255);
-#endif
+	circleRGBA(screen, x, y, HEAD_RADIUS, 64, 64, 64, 255);
 }
 
 void snake_control(struct Snake *snake)
@@ -330,9 +326,7 @@ void consumable_draw(const struct Consumable *col)
 	double y = col->segment.pos.y;
 	camera_convert(&x, &y);
 	filledCircleColor(screen, x, y, col->segment.r, col->color);
-#ifndef ANTIALIASING_OFF
-	aacircleRGBA(screen, x, y, col->segment.r, 0, 0, 0, 255);
-#endif
+	circleRGBA(screen, x, y, col->segment.r, 0, 0, 0, 255);
 }
 
 void camera_prepare(const struct Snake *target, enum CameraMode cm)
@@ -485,15 +479,7 @@ void obstacle_draw(const struct Obstacle *obstacle)
 	double x = obstacle->segment.pos.x;
 	double y = obstacle->segment.pos.y;
 	camera_convert(&x, &y);
-
-#if defined(MIYOO)
-	circleRGBA(screen, x, y, obstacle->segment.r, 0, 0, 0, 255);
-#else
 	filledCircleRGBA(screen, x, y, obstacle->segment.r, 0, 0, 0, 255);
-#ifndef ANTIALIASING_OFF
-	aacircleRGBA(screen, x, y, obstacle->segment.r, 0, 0, 0, 255);
-#endif
-#endif
 }
 
 void room_init(struct Room *room)
