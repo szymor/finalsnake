@@ -155,16 +155,16 @@ void snake_add_segments(struct Snake *snake, int count)
 	}
 }
 
-void snake_eat_collectibles(struct Snake *snake, struct Room *room)
+void snake_eat_consumables(struct Snake *snake, struct Room *room)
 {
-	for (int i = 0; i < room->collectibles_num; ++i)
+	for (int i = 0; i < room->consumables_num; ++i)
 	{
 		struct Vec2D diff = snake->pieces[0];
-		vsub(&diff, &room->collectibles[i].segment.pos);
-		if (vlen(&diff) < (HEAD_RADIUS + room->collectibles[i].segment.r - EAT_DEPTH))
+		vsub(&diff, &room->consumables[i].segment.pos);
+		if (vlen(&diff) < (HEAD_RADIUS + room->consumables[i].segment.r - EAT_DEPTH))
 		{
 			snake_add_segments(snake, 1);
-			collectible_generate(&room->collectibles[i], room);
+			consumable_generate(&room->consumables[i], room);
 		}
 	}
 }
@@ -275,7 +275,7 @@ bool generate_safe_position(
 	return safe;
 }
 
-void collectible_generate(struct Collectible *col, const struct Room *room)
+void consumable_generate(struct Consumable *col, const struct Room *room)
 {
 	const int safe_distance = 15;
 
@@ -293,12 +293,12 @@ void collectible_generate(struct Collectible *col, const struct Room *room)
 	}
 }
 
-void collectible_process(struct Collectible *col, double dt)
+void consumable_process(struct Consumable *col, double dt)
 {
-	// placeholder for moving collectibles
+	// placeholder for moving consumables
 }
 
-void collectible_draw(const struct Collectible *col)
+void consumable_draw(const struct Consumable *col)
 {
 	double x = col->segment.pos.x;
 	double y = col->segment.pos.y;
@@ -474,8 +474,8 @@ void room_init(struct Room *room)
 {
 	struct Vec2D pos;
 
-	room->collectibles_num = 0;
-	room->collectibles = NULL;
+	room->consumables_num = 0;
+	room->consumables = NULL;
 	room->walls_num = 0;
 	room->walls = NULL;
 	room->obstacles_num = 0;
@@ -487,8 +487,8 @@ void room_init(struct Room *room)
 		{
 			const int min_obstacle_size = 12;
 			const int max_obstacle_size = 24;
-			room->collectibles_num = 3;
-			room->collectibles = (struct Collectible *)malloc(room->collectibles_num * sizeof(struct Collectible));
+			room->consumables_num = 3;
+			room->consumables = (struct Consumable *)malloc(room->consumables_num * sizeof(struct Consumable));
 			room->cg_mode = CGM_CARTESIAN;
 			room->cg_cartesian.upper_left = (struct Vec2D){ .x = 0, .y = 0};
 			room->cg_cartesian.bottom_right = (struct Vec2D){ .x = SCREEN_WIDTH, .y = SCREEN_HEIGHT};
@@ -523,8 +523,8 @@ void room_init(struct Room *room)
 		{
 			const int outer_wall_num = rand() % 6 + 3;
 			const int circumradius = SCREEN_HEIGHT;
-			room->collectibles_num = 4;
-			room->collectibles = (struct Collectible *)malloc(room->collectibles_num * sizeof(struct Collectible));
+			room->consumables_num = 4;
+			room->consumables = (struct Consumable *)malloc(room->consumables_num * sizeof(struct Consumable));
 			room->cg_mode = CGM_POLAR;
 			room->cg_polar.radius = circumradius * cos(M_PI / outer_wall_num);
 			room->walls_num = outer_wall_num;
@@ -568,8 +568,8 @@ void room_init(struct Room *room)
 		case LT_STAR:
 		{
 			const int wall_thickness = 10;
-			room->collectibles_num = 5;
-			room->collectibles = (struct Collectible *)malloc(room->collectibles_num * sizeof(struct Collectible));
+			room->consumables_num = 5;
+			room->consumables = (struct Consumable *)malloc(room->consumables_num * sizeof(struct Consumable));
 			int points_no = rand() % 5 + 5;
 			room->walls_num = points_no * 3;
 			room->walls = (struct Wall *)malloc(room->walls_num * sizeof(struct Wall));
@@ -631,20 +631,20 @@ void room_init(struct Room *room)
 		} break;
 	}
 
-	for (int i = 0; i < room->collectibles_num; ++i)
+	for (int i = 0; i < room->consumables_num; ++i)
 	{
 		// needs to be done after wall init
-		collectible_generate(&room->collectibles[i], room);
+		consumable_generate(&room->consumables[i], room);
 	}
 }
 
 void room_dispose(struct Room *room)
 {
-	if (room->collectibles)
+	if (room->consumables)
 	{
-		free(room->collectibles);
-		room->collectibles = NULL;
-		room->collectibles_num = 0;
+		free(room->consumables);
+		room->consumables = NULL;
+		room->consumables_num = 0;
 	}
 	if (room->walls)
 	{
@@ -664,12 +664,12 @@ void room_process(struct Room *room, double dt)
 {
 	snake_control(&room->snake);
 
-	for (int i = 0; i < room->collectibles_num; ++i)
+	for (int i = 0; i < room->consumables_num; ++i)
 	{
-		collectible_process(&room->collectibles[i], dt);
+		consumable_process(&room->consumables[i], dt);
 	}
 	snake_process(&room->snake, dt);
-	snake_eat_collectibles(&room->snake, room);
+	snake_eat_consumables(&room->snake, room);
 }
 
 void room_draw(const struct Room *room)
@@ -730,9 +730,9 @@ void room_draw(const struct Room *room)
 		} break;
 	}
 #endif
-	for (int i = 0; i < room->collectibles_num; ++i)
+	for (int i = 0; i < room->consumables_num; ++i)
 	{
-		collectible_draw(&room->collectibles[i]);
+		consumable_draw(&room->consumables[i]);
 	}
 	for (int i = 0; i < room->walls_num; ++i)
 	{

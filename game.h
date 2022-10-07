@@ -48,7 +48,7 @@ enum Turn
 	TURN_RIGHT
 };
 
-enum CollectibleGenerationMode
+enum ConsumableGenerationMode
 {
 	CGM_CARTESIAN,
 	CGM_POLAR
@@ -66,7 +66,7 @@ struct Snake
 	enum Turn turn;
 };
 
-struct Collectible
+struct Consumable
 {
 	struct Segment segment;
 	Uint32 color;
@@ -94,7 +94,7 @@ struct Camera
 struct Room
 {
 	struct Snake snake;
-	enum CollectibleGenerationMode cg_mode;
+	enum ConsumableGenerationMode cg_mode;
 	union
 	{
 		struct
@@ -108,8 +108,8 @@ struct Room
 			struct Vec2D bottom_right;
 		} cg_cartesian;
 	};
-	struct Collectible *collectibles;
-	int collectibles_num;
+	struct Consumable *consumables;
+	int consumables_num;
 	struct Wall *walls;
 	int walls_num;
 	struct Obstacle *obstacles;
@@ -142,14 +142,14 @@ void snake_process(struct Snake *snake, double dt);
 void snake_draw(const struct Snake *snake);
 void snake_control(struct Snake *snake);
 void snake_add_segments(struct Snake *snake, int count);
-void snake_eat_collectibles(struct Snake *snake, struct Room *room);
+void snake_eat_consumables(struct Snake *snake, struct Room *room);
 bool snake_check_selfcollision(const struct Snake *snake);
 bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], int wallnum);
 bool snake_check_obstaclecollision(const struct Snake *snake, struct Obstacle obs[], int obnum);
 
-void collectible_generate(struct Collectible *col, const struct Room *room);
-void collectible_process(struct Collectible *col, double dt);
-void collectible_draw(const struct Collectible *col);
+void consumable_generate(struct Consumable *col, const struct Room *room);
+void consumable_process(struct Consumable *col, double dt);
+void consumable_draw(const struct Consumable *col);
 
 void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, double r);
 void wall_draw(const struct Wall *wall);
