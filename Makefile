@@ -4,7 +4,14 @@ TARGET=finalsnake
 SRC=main.c game.c
 INC=main.h game.h
 PKGS = sdl SDL_gfx
-CFLAGS = $(shell pkg-config --cflags $(PKGS))
+
+COMMIT_HASH != git rev-parse --short=7 HEAD
+$(shell git diff-index --quiet HEAD)
+ifneq ($(.SHELLSTATUS),0)
+COMMIT_HASH := $(COMMIT_HASH)-dirty
+endif
+
+CFLAGS = $(shell pkg-config --cflags $(PKGS)) -DCOMMIT_HASH=$(COMMIT_HASH)
 LDFLAGS = $(shell pkg-config --libs $(PKGS)) -lm
 
 all: $(TARGET)

@@ -92,11 +92,11 @@ void gs_menu_process(void)
 
 		sprintf(text, "FINAL SNAKE");
 		stringRGBA(screen, (SCREEN_WIDTH - 8 * strlen(text)) / 2,
-			40, text, 255, 255, 255, 255);
+			30, text, 255, 255, 255, 255);
 
 		// proverb display
 		const char *ptr = proverb;
-		int ypos = 64;
+		int ypos = 54;
 		while (ptr[0] != 0 && ptr[1] != 0)
 		{
 			stringRGBA(screen, (SCREEN_WIDTH - 8 * strlen(ptr)) / 2,
@@ -107,21 +107,29 @@ void gs_menu_process(void)
 
 		sprintf(text, "%c LEVEL TYPE", MO_LEVELTYPE == selection ? '>' : ' ');
 		stringRGBA(screen, (SCREEN_WIDTH / 2 - 8 * strlen(text)) / 2,
-			SCREEN_HEIGHT - 8 - 72, text, 255, 255, 255, 255);
+			SCREEN_HEIGHT - 8 - 77, text, 255, 255, 255, 255);
 		sprintf(text, "%s", menu_options_text[MO_LEVELTYPE][menu_options[MO_LEVELTYPE]]);
 		stringRGBA(screen, SCREEN_WIDTH / 2 + (SCREEN_WIDTH / 2 - 8 * strlen(text)) / 2,
-			SCREEN_HEIGHT - 8 - 72, text, 255, 255, 255, 255);
+			SCREEN_HEIGHT - 8 - 77, text, 255, 255, 255, 255);
 
 		sprintf(text, "%c WOBBLINESS", MO_WOBBLINESS == selection ? '>' : ' ');
 		stringRGBA(screen, (SCREEN_WIDTH / 2 - 8 * strlen(text)) / 2,
-			SCREEN_HEIGHT - 8 - 56, text, 255, 255, 255, 255);
+			SCREEN_HEIGHT - 8 - 61, text, 255, 255, 255, 255);
 		sprintf(text, "%s", menu_options_text[MO_WOBBLINESS][menu_options[MO_WOBBLINESS]]);
 		stringRGBA(screen, SCREEN_WIDTH / 2 + (SCREEN_WIDTH / 2 - 8 * strlen(text)) / 2,
-			SCREEN_HEIGHT - 8 - 56, text, 255, 255, 255, 255);
+			SCREEN_HEIGHT - 8 - 61, text, 255, 255, 255, 255);
 
 		sprintf(text, "by vamastah aka szymor");
 		stringRGBA(screen, (SCREEN_WIDTH - 8 * strlen(text)) / 2,
 			SCREEN_HEIGHT - 8 - 24, text, 255, 255, 255, 255);
+
+#ifdef COMMIT_HASH
+		sprintf(text, "commit " xstr(COMMIT_HASH));
+#else
+		sprintf(text, "unofficial build");
+#endif
+		stringRGBA(screen, (SCREEN_WIDTH - 8 * strlen(text)) / 2,
+			SCREEN_HEIGHT - 8 - 12, text, 255, 255, 255, 255);
 
 		SDL_Flip(screen);
 
