@@ -124,6 +124,7 @@ void fps_draw(void);
 #if FPS_LIMIT != 0
 void fps_limiter(void);
 #endif
+void pause_draw(bool paused);
 
 struct Vec2D* vadd(struct Vec2D *dst, const struct Vec2D *elem);
 struct Vec2D* vsub(struct Vec2D *dst, const struct Vec2D *elem);

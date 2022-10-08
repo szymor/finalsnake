@@ -383,6 +383,18 @@ void fps_draw(void)
 	stringRGBA(screen, 0, 0, string, 255, 255, 255, 255);
 }
 
+void pause_draw(bool paused)
+{
+	if (paused)
+	{
+		char string[8] = "PAUSE";
+		int x = (SCREEN_WIDTH - 8 * strlen(string)) / 2;
+		int y = (SCREEN_HEIGHT - 8) / 2;
+		stringRGBA(screen, x, y, string, 0, 0, 0, 255);
+		stringRGBA(screen, x - 1, y - 1, string, 255, 255, 255, 255);
+	}
+}
+
 #if FPS_LIMIT != 0
 void fps_limiter(void)
 {

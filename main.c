@@ -170,6 +170,7 @@ void gs_menu_process(void)
 
 void gs_game_process(void)
 {
+	bool paused = false;
 	// game data init
 	srand(time(NULL));
 	enum CameraMode cm = CM_FIXED;
@@ -208,9 +209,12 @@ void gs_game_process(void)
 							cm = (cm + 1) % CM_END;
 							camera_prepare(&room.snake, cm);
 							break;
+						case KEY_START:
+							paused = !paused;
+							break;
 						case KEY_QUIT:
 							leave = true;
-							gamestate = GS_QUIT;
+							gamestate = GS_MENU;
 							break;
 					}
 					break;
@@ -231,9 +235,13 @@ void gs_game_process(void)
 			fps_limiter();
 #endif
 			fps_counter(dt);
-			room_process(&room, dt);
+			if (!paused)
+			{
+				room_process(&room, dt);
+			}
 			room_draw(&room);
 			fps_draw();
+			pause_draw(paused);
 			SDL_Flip(screen);
 			if (room_check_gameover(&room))
 			{
