@@ -250,12 +250,16 @@ bool generate_safe_position(
 			case CGM_CARTESIAN:
 				pos->x = rand() % (x_to - x_from) + x_from;
 				pos->y = rand() % (y_to - y_from) + y_from;
+				pos->x = round(pos->x);
+				pos->y = round(pos->y);
 				break;
 			case CGM_POLAR:
 				double r = rand() % (int) room->cg_polar.radius;
 				double fi = 2 * M_PI * (rand() % 1024) / 1024;
 				pos->x = r * cos(fi);
 				pos->y = r * sin(fi);
+				pos->x = round(pos->x);
+				pos->y = round(pos->y);
 				break;
 		}
 		if (snake)
@@ -416,10 +420,10 @@ void fps_limiter(void)
 
 void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, double r)
 {
-	wall->start.x = x1;
-	wall->start.y = y1;
-	wall->end.x = x2;
-	wall->end.y = y2;
+	wall->start.x = round(x1);
+	wall->start.y = round(y1);
+	wall->end.x = round(x2);
+	wall->end.y = round(y2);
 	wall->r = r;
 }
 
@@ -482,7 +486,7 @@ struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos)
 
 void obstacle_init(struct Obstacle *obstacle, double x, double y, double r)
 {
-	obstacle->segment.pos = (struct Vec2D){ .x = x, .y = y };
+	obstacle->segment.pos = (struct Vec2D){ .x = round(x), .y = round(y) };
 	obstacle->segment.r = r;
 }
 
