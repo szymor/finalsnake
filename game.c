@@ -736,24 +736,32 @@ void room_draw(const struct Room *room)
 			const int bpp = screen->format->BytesPerPixel;
 			const double sinfi = sin(*camera.angle);
 			const double cosfi = cos(*camera.angle);
+			const int delta_x = cosfi * 65536;
+			const int delta_y = sinfi * 65536;
+			const double bx = -SCREEN_WIDTH / 2;
+			const double by = -SCREEN_HEIGHT / 2;
+			const double ax = bx * cosfi - by * sinfi;
+			const double ay = bx * sinfi + by * cosfi;
+			// fixed-point representation
+			int xx = (ax + camera.center->x) * 65536;
+			int yy = (ay + camera.center->y) * 65536;
 			for (int y = 0; y < SCREEN_HEIGHT; ++y)
+			{
+				int fx = xx;
+				int fy = yy;
 				for (int x = 0; x < SCREEN_WIDTH; ++x)
 				{
-					double bx = x - SCREEN_WIDTH / 2;
-					double by = y - SCREEN_HEIGHT / 2;
-					double ax = bx * cosfi - by * sinfi;
-					double ay = bx * sinfi + by * cosfi;
-					const int xx = ax + camera.center->x;
-					const int yy = ay + camera.center->y;
+					int ix = xx >> 16;	// div by 65536
+					int iy = yy >> 16;
 					Uint8 *p = (Uint8 *)screen->pixels + y * screen->pitch + x * bpp;
-					int xm = xx / CHECKERBOARD_SIZE;
-					if (xx < 0) xm = -xm + 1;
-					xm %= 2;
-					int ym = yy / CHECKERBOARD_SIZE;
-					if (yy < 0) ym = -ym + 1;
-					ym %= 2;
-					*(Uint16 *)p = xm ^ ym ? light_gray : dark_gray;
+					// optimized for CHECKERBOARD_SIZE == 32
+					*(Uint16 *)p = (ix & 0x20) ^ (iy & 0x20) ? light_gray : dark_gray;
+					xx += delta_x;
+					yy += delta_y;
 				}
+				xx = fx - delta_y;
+				yy = fy + delta_x;
+			}
 			SDL_UnlockSurface(screen);
 		} break;
 	}
