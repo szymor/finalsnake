@@ -436,20 +436,14 @@ void wall_draw(const struct Wall *wall)
 	camera_convert(&x1, &y1);
 	camera_convert(&x2, &y2);
 
-#if defined(MIYOO)
-	/* thickLineRGBA seems to have buggy implementation in MiyooCFW */
 	struct Vec2D voff = { .x = x2 - x1, .y = y2 - y1 };
 	vmul(&voff, wall->r / vlen(&voff));
 	voff = (struct Vec2D){ .x = -voff.y, .y = voff.x };
-	lineRGBA(screen, x1 + voff.x, y1 + voff.y, x2 + voff.x, y2 + voff.y, 0, 0, 0, 255);
-	lineRGBA(screen, x1 - voff.x, y1 - voff.y, x2 - voff.x, y2 - voff.y, 0, 0, 0, 255);
-	circleRGBA(screen, x1, y1, wall->r, 0, 0, 0, 255);
-	circleRGBA(screen, x2, y2, wall->r, 0, 0, 0, 255);
-#else
-	thickLineRGBA(screen, x1, y1, x2, y2, 2 * wall->r + 1, 0, 0, 0, 255);
+	Sint16 vx[4] = {x1 + voff.x, x2 + voff.x, x2 - voff.x, x1 - voff.x};
+	Sint16 vy[4] = {y1 + voff.y, y2 + voff.y, y2 - voff.y, y1 - voff.y};
+	filledPolygonRGBA(screen, vx, vy, 4, 0, 0, 0, 255);
 	filledCircleRGBA(screen, x1, y1, wall->r, 0, 0, 0, 255);
 	filledCircleRGBA(screen, x2, y2, wall->r, 0, 0, 0, 255);
-#endif
 }
 
 struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos)
