@@ -4,8 +4,11 @@
 As the name suggests, it is yet another implementation of a popular Snake game. This time you are not limited to four directions when it comes to turning. The game was created with PocketGo and other retrohandhelds in mind. I hope you like it.
 
 ## to do
-- graphics,
-- more detailed background (makes easier to navigate in some camera modes),
+- graphics - tiled background (hearts, stars, squares, diamonds, etc.), sprites for snake and food, maybe simple animations?
+- new camera mode - TPP but with momentum,
+- music and sounds,
 - custom level support,
-- [miyoo] fix CM_TPP bug (camera gets awkward sometimes) - probably it is a fault of buggy sin/cos implementation in CFW,
-- various kinds of collectibles with different effects (longer, faster, shorter, slower, drunk, level warp, etc.) and different behaviour (static, running away, wandering).
+- multiple snakes (one for player, others for AI),
+- various behaviour of food - static, running away, wandering, tail-following, evading, growing (gives more length when eaten),
+- various effects of food (maybe dependent on color) - longer, able to eat obstacles and its own tail, faster, slower,
+- maybe acceleration should make snake wiggle?

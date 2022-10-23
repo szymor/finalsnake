@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 #endif
 	screen = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BPP, vflags);
 	SDL_CHECK(screen == NULL);
-	SDL_WM_SetCaption("Final Snake prealpha", NULL);
+	SDL_WM_SetCaption("Final Snake alpha", NULL);
 	SDL_ShowCursor(SDL_DISABLE);
 
 	while (GS_QUIT != gamestate)
