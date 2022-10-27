@@ -39,6 +39,7 @@ enum CameraMode
 	CM_FIXED,
 	CM_TRACKING,
 	CM_TPP,
+	CM_TPP_DELAYED,
 	CM_END
 };
 
@@ -92,6 +93,8 @@ struct Camera
 	enum CameraMode cm;
 	const struct Vec2D *center;
 	const double *angle;
+	double angle_store;
+	const double *target_angle;
 };
 
 struct Room
@@ -140,6 +143,7 @@ bool generate_safe_position(
 
 void camera_prepare(const struct Snake *target, enum CameraMode cm);
 void camera_convert(double *x, double *y);
+void camera_process(double dt);
 
 void snake_init(struct Snake *snake);
 void snake_process(struct Snake *snake, double dt);

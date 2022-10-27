@@ -246,6 +246,7 @@ void gs_game_process(void)
 			if (!paused)
 			{
 				room_process(&room, dt);
+				camera_process(dt);
 			}
 			room_draw(&room);
 			fps_draw();

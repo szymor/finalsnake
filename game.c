@@ -7,7 +7,8 @@ int fps = 0;
 struct Camera camera = {
 	.cm = CM_FIXED,
 	.center = NULL,
-	.angle = NULL
+	.angle = NULL,
+	.target_angle = NULL
 };
 
 struct Vec2D* vadd(struct Vec2D *dst, const struct Vec2D *elem)
@@ -337,7 +338,16 @@ void camera_prepare(const struct Snake *target, enum CameraMode cm)
 {
 	camera.cm = cm;
 	camera.center = &target->pieces[0];
-	camera.angle = &target->dir;
+	if (CM_TPP == cm)
+	{
+		camera.angle = &target->dir;
+	}
+	else if (CM_TPP_DELAYED == cm)
+	{
+		camera.angle_store = target->dir;
+		camera.angle = &camera.angle_store;
+		camera.target_angle = &target->dir;
+	}
 }
 
 void camera_convert(double *x, double *y)
@@ -351,6 +361,7 @@ void camera_convert(double *x, double *y)
 			*x = *x - camera.center->x + SCREEN_WIDTH / 2;
 			*y = *y - camera.center->y + SCREEN_HEIGHT / 2;
 			break;
+		case CM_TPP_DELAYED:
 		case CM_TPP:
 			*x -= camera.center->x;
 			*y -= camera.center->y;
@@ -363,6 +374,19 @@ void camera_convert(double *x, double *y)
 			*x += SCREEN_WIDTH / 2;
 			*y += SCREEN_HEIGHT / 2;
 			break;
+	}
+}
+
+void camera_process(double dt)
+{
+	if (CM_TPP_DELAYED == camera.cm)
+	{
+		double diff = *camera.target_angle - camera.angle_store;
+		SINCOS_FIX_INC(diff);
+		SINCOS_FIX_DEC(diff);
+		camera.angle_store += 0.6 * diff * dt;
+		SINCOS_FIX_INC(camera.angle_store);
+		SINCOS_FIX_DEC(camera.angle_store);
 	}
 }
 
@@ -649,7 +673,7 @@ void room_init(struct Room *room)
 			snake_init(&room->snake);
 			room->snake.pieces[0] = (struct Vec2D){ .x = 15, .y = -radius / 3 };
 			snake_add_segments(&room->snake, START_LEN - 1);
-			camera_prepare(&room->snake, CM_TPP);
+			camera_prepare(&room->snake, CM_TPP_DELAYED);
 		} break;
 	}
 
@@ -725,6 +749,7 @@ void room_draw(const struct Room *room)
 			SDL_UnlockSurface(screen);
 			break;
 		case CM_TPP:
+		case CM_TPP_DELAYED:
 		{
 			SDL_LockSurface(screen);
 			const int bpp = screen->format->BytesPerPixel;
