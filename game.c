@@ -1,6 +1,7 @@
 #include <SDL_gfxPrimitives.h>
 #include "main.h"
 #include "game.h"
+#include "gfx.h"
 
 int fps = 0;
 
@@ -682,6 +683,8 @@ void room_init(struct Room *room)
 		// needs to be done after wall init
 		consumable_generate(&room->consumables[i], room);
 	}
+
+	tiles_recolor(rand() % 100);
 }
 
 void room_dispose(struct Room *room)
@@ -738,14 +741,24 @@ void room_draw(const struct Room *room)
 		case CM_FIXED:
 			SDL_LockSurface(screen);
 			const int bpp = screen->format->BytesPerPixel;
+			int tf = (ox / CHECKERBOARD_SIZE) ^ (oy / CHECKERBOARD_SIZE) ? CHECKERBOARD_SIZE : 0;
+			int tx = (ox % CHECKERBOARD_SIZE) + tf;
+			int ty = oy % CHECKERBOARD_SIZE;
 			for (int y = 0; y < SCREEN_HEIGHT; ++y)
+			{
 				for (int x = 0; x < SCREEN_WIDTH; ++x)
 				{
-					const int xx = x + ox;
-					const int yy = y + oy;
+					++tx;
+					tx %= CHECKERBOARD_SIZE * 2;
 					Uint8 *p = (Uint8 *)screen->pixels + y * screen->pitch + x * bpp;
-					*(Uint16 *)p = ((xx / CHECKERBOARD_SIZE) % 2) ^ ((yy / CHECKERBOARD_SIZE) % 2) ? light_gray : dark_gray;
+					const int tbpp = tiles->format->BytesPerPixel;
+					const Uint16 tp = *(Uint16 *)((Uint8 *)tiles->pixels + ty * tiles->pitch + tx * tbpp);
+					*(Uint16 *)p = tp;
 				}
+				++ty;
+				ty %= CHECKERBOARD_SIZE;
+				tx += (0 == ty) ? CHECKERBOARD_SIZE : 0;
+			}
 			SDL_UnlockSurface(screen);
 			break;
 		case CM_TPP:

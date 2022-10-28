@@ -1,9 +1,12 @@
 #include <stdbool.h>
+#include <SDL.h>
+#include <SDL_image.h>
 #include <SDL_gfxPrimitives.h>
 #include <stdlib.h>
 #include <time.h>
 #include "main.h"
 #include "game.h"
+#include "gfx.h"
 
 // maximum number of settings per option
 #define MENU_SETTINGS_MAX			(3)
@@ -52,6 +55,14 @@ int main(int argc, char *argv[])
 	SDL_CHECK(screen == NULL);
 	SDL_WM_SetCaption("Final Snake alpha", NULL);
 	SDL_ShowCursor(SDL_DISABLE);
+
+	int img_flags = IMG_INIT_PNG;
+	if (img_flags != IMG_Init(img_flags))
+	{
+		printf("IMG_Init: %s\n", IMG_GetError());
+		exit(0);
+	}
+	tiles_init();
 
 	while (GS_QUIT != gamestate)
 	{

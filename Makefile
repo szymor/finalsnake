@@ -1,9 +1,9 @@
 .PHONY: all clean
 
 TARGET=finalsnake
-SRC=main.c game.c
-INC=main.h game.h
-PKGS = sdl SDL_gfx
+SRC=main.c game.c gfx.c
+INC=main.h game.h gfx.h
+PKGS = sdl SDL_gfx SDL_image
 
 COMMIT_HASH != git rev-parse --short=7 HEAD
 $(shell git diff-index --quiet HEAD)
