@@ -23,10 +23,12 @@ void tiles_prepare(int suit, int hue);
 void tiles_dispose(void);
 
 void food_init(void);
+void food_recolor(int hue);
 SDL_Rect *food_get_random_rect(void);
 void food_dispose(void);
 
 void parts_init(void);
+void parts_recolor(int hue);
 void parts_dispose(void);
 
 #endif

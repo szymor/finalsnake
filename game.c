@@ -693,7 +693,10 @@ void room_init(struct Room *room)
 		consumable_generate(&room->consumables[i], room);
 	}
 
-	tiles_prepare(rand() % SUIT_COUNT, rand() % HUE_PRECISION);
+	int hue = rand() % HUE_PRECISION;
+	tiles_prepare(rand() % SUIT_COUNT, hue);
+	food_recolor(hue);
+	parts_recolor(hue);
 }
 
 void room_dispose(struct Room *room)

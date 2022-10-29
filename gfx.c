@@ -16,6 +16,150 @@ SDL_Surface *snake_body = NULL;
 
 static SDL_Surface *tiles_orig = NULL;
 
+static void rgb_to_hsv(double *rh, double *gs, double *bv);
+static void hsv_to_rgb(double *hr, double *sg, double *vb);
+static void surface_recolor(SDL_Surface *s, int hue);
+
+// r,g,b - range 0..1
+static void rgb_to_hsv(double *rh, double *gs, double *bv)
+{
+	double r = *rh;
+	double g = *gs;
+	double b = *bv;
+	double vmax = MAX3(r, g, b);	// range 0..1
+	double vmin = MIN3(r, g, b);
+	double chroma = vmax - vmin;
+	double s = vmax > 0 ? chroma / vmax : 0;	// range 0..1
+	double h = 0;	// range 0..2pi
+	if (chroma > 0)
+	{
+		if (vmax == r)
+		{
+			h = (g - b) / chroma;
+		}
+		else if (vmax == g)
+		{
+			h = (b - r) / chroma + 2 * M_PI / 3;
+		}
+		else if (vmax == b)
+		{
+			h = (r - g) / chroma + 4 * M_PI / 3;
+		}
+	}
+
+	*rh = h;
+	*gs = s;
+	*bv = vmax;
+}
+
+static void hsv_to_rgb(double *hr, double *sg, double *vb)
+{
+	double vmax = *vb;
+	double s = *sg;
+	double h = *hr;
+	double r, g, b;
+
+	double chroma = vmax * s;
+	h = 3 * h / M_PI;
+	double hmod = h;
+	while (hmod >= 2.0) hmod -= 2.0;
+	double xcol = chroma * (1.0 - fabs(hmod - 1.0));
+	if (h < 1)
+	{
+		r = chroma;
+		g = xcol;
+		b = 0;
+	}
+	else if (h < 2)
+	{
+		r = xcol;
+		g = chroma;
+		b = 0;
+	}
+	else if (h < 3)
+	{
+		r = 0;
+		g = chroma;
+		b = xcol;
+	}
+	else if (h < 4)
+	{
+		r = 0;
+		g = xcol;
+		b = chroma;
+	}
+	else if (h < 5)
+	{
+		r = xcol;
+		g = 0;
+		b = chroma;
+	}
+	else // if (h < 6)
+	{
+		r = chroma;
+		g = 0;
+		b = xcol;
+	}
+	const double m = vmax - chroma;
+	r += m;
+	g += m;
+	b += m;
+
+	*hr = r;
+	*sg = g;
+	*vb = b;
+}
+
+// use for 32-bit surfaces only (DisplayFormatAlpha surfaces also count)
+static void surface_recolor(SDL_Surface *s, int hue)
+{
+	Uint32 temp;
+	const SDL_PixelFormat *fmt = s->format;
+	double rh = 2 * M_PI * hue / HUE_PRECISION;
+	double gs = 0.1;
+	double bv = 1.0;
+	hsv_to_rgb(&rh, &gs, &bv);
+
+	SDL_LockSurface(s);
+	for (int y = 0; y < s->h; ++y)
+		for (int x = 0; x < s->w; ++x)
+		{
+			Uint32 *pixel = (Uint32 *)((Uint8 *)s->pixels + y * s->pitch + x * s->format->BytesPerPixel);
+
+			Uint8 red, green, blue, alpha;
+			temp = *pixel & fmt->Rmask;
+			temp = temp >> fmt->Rshift;
+			temp = temp << fmt->Rloss;
+			red = (Uint8)temp;
+			temp = *pixel & fmt->Gmask;
+			temp = temp >> fmt->Gshift;
+			temp = temp << fmt->Gloss;
+			green = (Uint8)temp;
+			temp = *pixel & fmt->Bmask;
+			temp = temp >> fmt->Bshift;
+			temp = temp << fmt->Bloss;
+			blue = (Uint8)temp;
+			temp = *pixel & fmt->Amask;
+			temp = temp >> fmt->Ashift;
+			temp = temp << fmt->Aloss;
+			alpha = (Uint8)temp;
+
+			double r = rh * (red / 255.0);
+			double g = gs * (green / 255.0);
+			double b = bv * (blue / 255.0);
+
+			red = r * 255;
+			green = g * 255;
+			blue = b * 255;
+
+			*pixel = ((red >> fmt->Rloss) << fmt->Rshift) |
+				((green >> fmt->Gloss) << fmt->Gshift) |
+				((blue >> fmt->Bloss) << fmt->Bshift) |
+				((alpha >> fmt->Aloss) << fmt->Ashift);
+		}
+	SDL_UnlockSurface(s);
+}
+
 void tiles_init(void)
 {
 	SDL_Surface *tmp = IMG_Load("tiles" xstr(CHECKERBOARD_SIZE) ".png");
@@ -96,87 +240,22 @@ void tiles_prepare(int suit, int hue)
 			temp = temp << fmt->Bloss;
 			blue = (Uint8)temp;
 
-			// RGB to HSV
-			double r = red / 255.0;
-			double g = green / 255.0;
-			double b = blue / 255.0;
-			double vmax = MAX3(r, g, b);	// range 0..1
-			double vmin = MIN3(r, g, b);
-			double chroma = vmax - vmin;
-			double s = vmax > 0 ? chroma / vmax : 0;	// range 0..1
-			double h = 0;	// range 0..2pi
-			if (chroma > 0)
-			{
-				if (vmax == r)
-				{
-					h = (g - b) / chroma;
-				}
-				else if (vmax == g)
-				{
-					h = (b - r) / chroma + 2 * M_PI / 3;
-				}
-				else if (vmax == b)
-				{
-					h = (r - g) / chroma + 4 * M_PI / 3;
-				}
-			}
+			double rh = red / 255.0;
+			double gs = green / 255.0;
+			double bv = blue / 255.0;
+			rgb_to_hsv(&rh, &gs, &bv);
 
 			// change contrast and recolor
-			vmax = 0.5 + vmax * 0.25;
-			h = 2 * M_PI * hue / HUE_PRECISION;
-			s = 0.2;
+			bv = 0.5 + bv * 0.25;
+			rh = 2 * M_PI * hue / HUE_PRECISION;
+			gs = 0.2;
 
-			// HSV to RGB
-			chroma = vmax * s;
-			h = 3 * h / M_PI;
-			double hmod = h;
-			while (hmod >= 2.0) hmod -= 2.0;
-			double xcol = chroma * (1.0 - fabs(hmod - 1.0));
-			if (h < 1)
-			{
-				r = chroma;
-				g = xcol;
-				b = 0;
-			}
-			else if (h < 2)
-			{
-				r = xcol;
-				g = chroma;
-				b = 0;
-			}
-			else if (h < 3)
-			{
-				r = 0;
-				g = chroma;
-				b = xcol;
-			}
-			else if (h < 4)
-			{
-				r = 0;
-				g = xcol;
-				b = chroma;
-			}
-			else if (h < 5)
-			{
-				r = xcol;
-				g = 0;
-				b = chroma;
-			}
-			else // if (h < 6)
-			{
-				r = chroma;
-				g = 0;
-				b = xcol;
-			}
-			const double m = vmax - chroma;
-			r += m;
-			g += m;
-			b += m;
+			hsv_to_rgb(&rh, &gs, &bv);
 
 			// back to Uint8
-			red = r * 255;
-			green = g * 255;
-			blue = b * 255;
+			red = rh * 255;
+			green = gs * 255;
+			blue = bv * 255;
 
 			Uint16 *dst_px = (Uint16 *)((Uint8 *)tiles->pixels + y * tiles->pitch + x * bpp);
 			*dst_px = (red >> fmt->Rloss) << fmt->Rshift |
@@ -205,6 +284,15 @@ void food_init(void)
 	SDL_FreeSurface(tmp);
 }
 
+// it does not need init before as a side effect
+void food_recolor(int hue)
+{
+	food_dispose();
+	food_init();
+	surface_recolor(fruits, hue);
+	surface_recolor(veggies, hue);
+}
+
 SDL_Rect *food_get_random_rect(void)
 {
 	static SDL_Rect rect = {.x = 0, .y = 0,
@@ -216,10 +304,16 @@ SDL_Rect *food_get_random_rect(void)
 
 void food_dispose(void)
 {
-	SDL_FreeSurface(fruits);
-	fruits = NULL;
-	SDL_FreeSurface(veggies);
-	veggies = NULL;
+	if (fruits)
+	{
+		SDL_FreeSurface(fruits);
+		fruits = NULL;
+	}
+	if (veggies)
+	{
+		SDL_FreeSurface(veggies);
+		veggies = NULL;
+	}
 }
 
 void parts_init(void)
@@ -233,10 +327,25 @@ void parts_init(void)
 	SDL_FreeSurface(tmp);
 }
 
+// it does not need init before as a side effect
+void parts_recolor(int hue)
+{
+	parts_dispose();
+	parts_init();
+	surface_recolor(snake_head, hue);
+	surface_recolor(snake_body, hue);
+}
+
 void parts_dispose(void)
 {
-	SDL_FreeSurface(snake_head);
-	snake_head = NULL;
-	SDL_FreeSurface(snake_body);
-	snake_body = NULL;
+	if (snake_head)
+	{
+		SDL_FreeSurface(snake_head);
+		snake_head = NULL;
+	}
+	if (snake_body)
+	{
+		SDL_FreeSurface(snake_body);
+		snake_body = NULL;
+	}
 }
