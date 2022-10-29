@@ -684,7 +684,7 @@ void room_init(struct Room *room)
 		consumable_generate(&room->consumables[i], room);
 	}
 
-	tiles_recolor(rand() % 100);
+	tiles_prepare(rand() % SUIT_COUNT, rand() % HUE_PRECISION);
 }
 
 void room_dispose(struct Room *room)

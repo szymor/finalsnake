@@ -18,7 +18,7 @@ void tiles_init(void)
 	tiles_orig = SDL_DisplayFormat(tmp);
 	SDL_FreeSurface(tmp);
 
-	tiles = SDL_CreateRGBSurface(0, tiles_orig->w, tiles_orig->h,
+	tiles = SDL_CreateRGBSurface(0, CHECKERBOARD_SIZE * 2, CHECKERBOARD_SIZE,
 		tiles_orig->format->BitsPerPixel,
 		tiles_orig->format->Rmask,
 		tiles_orig->format->Gmask,
@@ -27,19 +27,55 @@ void tiles_init(void)
 	SDL_BlitSurface(tiles_orig, NULL, tiles, NULL);
 }
 
-void tiles_recolor(int hue)
+void tiles_prepare(int suit, int hue)
 {
 	const SDL_PixelFormat *fmt = tiles_orig->format;
 	const Uint8 bpp = fmt->BytesPerPixel;
 	Uint32 temp;
 
-	SDL_LockSurface(tiles_orig);
-	SDL_LockSurface(tiles);
+	SDL_Rect src = {.x = CHECKERBOARD_SIZE * suit, .y = 0,
+		.w = CHECKERBOARD_SIZE, .h = CHECKERBOARD_SIZE};
+	SDL_Rect dst = {.x = 0, .y = 0, .w = 0, .h = 0};
+	SDL_BlitSurface(tiles_orig, &src, tiles, &dst);
+	dst.x = CHECKERBOARD_SIZE;
+	SDL_BlitSurface(tiles_orig, &src, tiles, &dst);
 
-	for (int y = 0; y < tiles_orig->h; ++y)
-		for (int x = 0; x < tiles_orig->w; ++x)
+	// invert the second tile
+	SDL_LockSurface(tiles);
+	for (int y = 0; y < tiles->h; ++y)
+		for (int x = CHECKERBOARD_SIZE; x < tiles->w; ++x)
 		{
-			Uint32 pixel = *(Uint16 *)((Uint8 *)tiles_orig->pixels + y * tiles_orig->pitch + x * bpp);
+			Uint16 *pixel = (Uint16 *)((Uint8 *)tiles->pixels + y * tiles->pitch + x * bpp);
+
+			Uint8 red, green, blue;
+			temp = *pixel & fmt->Rmask;
+			temp = temp >> fmt->Rshift;
+			temp = temp << fmt->Rloss;
+			red = (Uint8)temp;
+			temp = *pixel & fmt->Gmask;
+			temp = temp >> fmt->Gshift;
+			temp = temp << fmt->Gloss;
+			green = (Uint8)temp;
+			temp = *pixel & fmt->Bmask;
+			temp = temp >> fmt->Bshift;
+			temp = temp << fmt->Bloss;
+			blue = (Uint8)temp;
+
+			red = 255 - red;
+			green = 255 - green;
+			blue = 255 - blue;
+
+			*pixel = (red >> fmt->Rloss) << fmt->Rshift |
+				(green >> fmt->Gloss) << fmt->Gshift |
+				(blue >> fmt->Bloss) << fmt->Bshift;
+		}
+	SDL_UnlockSurface(tiles);
+
+	SDL_LockSurface(tiles);
+	for (int y = 0; y < tiles->h; ++y)
+		for (int x = 0; x < tiles->w; ++x)
+		{
+			Uint16 pixel = *(Uint16 *)((Uint8 *)tiles->pixels + y * tiles->pitch + x * bpp);
 
 			Uint8 red, green, blue;
 
@@ -83,7 +119,7 @@ void tiles_recolor(int hue)
 
 			// change contrast and recolor
 			vmax = 0.5 + vmax * 0.25;
-			h = 2 * M_PI * hue / 100;
+			h = 2 * M_PI * hue / HUE_PRECISION;
 			s = 0.2;
 
 			// HSV to RGB
@@ -140,12 +176,10 @@ void tiles_recolor(int hue)
 
 			Uint16 *dst_px = (Uint16 *)((Uint8 *)tiles->pixels + y * tiles->pitch + x * bpp);
 			*dst_px = (red >> fmt->Rloss) << fmt->Rshift |
-				(green >> fmt->Gloss) << fmt->Gshift | 
+				(green >> fmt->Gloss) << fmt->Gshift |
 				(blue >> fmt->Bloss) << fmt->Bshift;
 		}
-
 	SDL_UnlockSurface(tiles);
-	SDL_UnlockSurface(tiles_orig);
 }
 
 void tiles_dispose(void)
