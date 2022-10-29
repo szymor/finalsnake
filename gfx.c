@@ -1,4 +1,5 @@
 #include "gfx.h"
+#include "main.h"
 #include <SDL_image.h>
 #include <math.h>
 
@@ -13,7 +14,7 @@ static SDL_Surface *tiles_orig = NULL;
 
 void tiles_init(void)
 {
-	SDL_Surface *tmp = IMG_Load("tiles.png");
+	SDL_Surface *tmp = IMG_Load("tiles" xstr(CHECKERBOARD_SIZE) ".png");
 	tiles_orig = SDL_DisplayFormat(tmp);
 	SDL_FreeSurface(tmp);
 
@@ -83,7 +84,7 @@ void tiles_recolor(int hue)
 			// change contrast and recolor
 			vmax = 0.5 + vmax * 0.25;
 			h = 2 * M_PI * hue / 100;
-			s = 0.5;
+			s = 0.2;
 
 			// HSV to RGB
 			chroma = vmax * s;

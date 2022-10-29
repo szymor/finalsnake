@@ -727,8 +727,6 @@ void room_draw(const struct Room *room)
 #ifdef CHECKERBOARD_OFF
 	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 128, 128, 128));
 #else
-	const Uint16 light_gray = SDL_MapRGB(screen->format, 128, 128, 128);
-	const Uint16 dark_gray = SDL_MapRGB(screen->format, 192, 192, 192);
 	int ox = 0;
 	int oy = 0;
 	switch (camera.cm)
@@ -739,25 +737,26 @@ void room_draw(const struct Room *room)
 			oy = (int)(camera.center->y - SCREEN_HEIGHT / 2) % (CHECKERBOARD_SIZE * 2);
 			if (oy < 0) oy = (CHECKERBOARD_SIZE * 2) + oy;
 		case CM_FIXED:
-			SDL_LockSurface(screen);
 			const int bpp = screen->format->BytesPerPixel;
-			int tf = (ox / CHECKERBOARD_SIZE) ^ (oy / CHECKERBOARD_SIZE) ? CHECKERBOARD_SIZE : 0;
-			int tx = (ox % CHECKERBOARD_SIZE) + tf;
-			int ty = oy % CHECKERBOARD_SIZE;
+			SDL_LockSurface(screen);
 			for (int y = 0; y < SCREEN_HEIGHT; ++y)
 			{
+				const int fox = ox;
 				for (int x = 0; x < SCREEN_WIDTH; ++x)
 				{
-					++tx;
-					tx %= CHECKERBOARD_SIZE * 2;
+					int tf = (ox / CHECKERBOARD_SIZE) ^ (oy / CHECKERBOARD_SIZE) ? CHECKERBOARD_SIZE : 0;
+					int tx = (ox % CHECKERBOARD_SIZE) + tf;
+					int ty = oy % CHECKERBOARD_SIZE;
 					Uint8 *p = (Uint8 *)screen->pixels + y * screen->pitch + x * bpp;
 					const int tbpp = tiles->format->BytesPerPixel;
 					const Uint16 tp = *(Uint16 *)((Uint8 *)tiles->pixels + ty * tiles->pitch + tx * tbpp);
 					*(Uint16 *)p = tp;
+					++ox;
+					ox %= 2 * CHECKERBOARD_SIZE;
 				}
-				++ty;
-				ty %= CHECKERBOARD_SIZE;
-				tx += (0 == ty) ? CHECKERBOARD_SIZE : 0;
+				++oy;
+				oy %= 2 * CHECKERBOARD_SIZE;
+				ox = fox;
 			}
 			SDL_UnlockSurface(screen);
 			break;
@@ -783,11 +782,20 @@ void room_draw(const struct Room *room)
 				int fy = yy;
 				for (int x = 0; x < SCREEN_WIDTH; ++x)
 				{
-					int ix = xx >> 16;	// div by 65536
-					int iy = yy >> 16;
+					int ix = xx % ((2 * CHECKERBOARD_SIZE) << 16);
+					if (ix < 0) ix += ((2 * CHECKERBOARD_SIZE) << 16);
+					int iy = yy % ((2 * CHECKERBOARD_SIZE) << 16);
+					if (iy < 0) iy += ((2 * CHECKERBOARD_SIZE) << 16);
+					ix >>= 16;	// div by 65536
+					iy >>= 16;
+					int modx = ix % CHECKERBOARD_SIZE;
+					int mody = iy % CHECKERBOARD_SIZE;
+					if (((ix / CHECKERBOARD_SIZE) ^ (iy / CHECKERBOARD_SIZE)) & 1)
+						modx += CHECKERBOARD_SIZE;
 					Uint8 *p = (Uint8 *)screen->pixels + y * screen->pitch + x * bpp;
-					// optimized for CHECKERBOARD_SIZE == 32
-					*(Uint16 *)p = (ix & 0x20) ^ (iy & 0x20) ? light_gray : dark_gray;
+					const int tbpp = tiles->format->BytesPerPixel;
+					const Uint16 tp = *(Uint16 *)((Uint8 *)tiles->pixels + mody * tiles->pitch + modx * tbpp);
+					*(Uint16 *)p = tp;
 					xx += delta_x;
 					yy += delta_y;
 				}

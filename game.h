@@ -14,7 +14,6 @@
 #define EAT_DEPTH						(2.0)
 #define SNAKE_V_MULTIPLIER				(2.0)
 #define SNAKE_W_MULTIPLIER				(1.5)
-#define CHECKERBOARD_SIZE				(32)
 
 #define SDL_CHECK(x) if (x) { printf("SDL: %s\n", SDL_GetError()); exit(0); }
 #define SDLGFX_COLOR(r, g, b) (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff)
