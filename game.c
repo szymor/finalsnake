@@ -90,9 +90,9 @@ void snake_process(struct Snake *snake, double dt)
 	}
 
 	// wobbliness calculation
-	snake->wobbly_phase += dt;
+	snake->wobbly_phase += 2 * M_PI * snake->wobbly_freq * dt;
 	SINCOS_FIX_INC(snake->wobbly_phase);
-	double wobbly = 0.5 * sin(2 * M_PI * snake->wobbly_freq * snake->wobbly_phase);
+	double wobbly = 0.5 * sin(snake->wobbly_phase);
 
 	// head calculation
 	struct Vec2D offset = {
