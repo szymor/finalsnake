@@ -3,6 +3,9 @@
 ## what is it?
 As the name suggests, it is yet another implementation of a popular Snake game. This time you are not limited to four directions when it comes to turning. The game was created with PocketGo and other retrohandhelds in mind. I hope you like it.
 
+## contribution
+- fruits and veggies by [Mr. Milkduds](https://mrmilkduds.itch.io/).
+
 ## to do
 - graphics - tiled background (hearts, stars, squares, diamonds, etc.), sprites for snake and food, maybe simple animations?
 - new camera mode - TPP but with momentum,

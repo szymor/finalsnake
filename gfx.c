@@ -9,6 +9,8 @@
 #define MIN3(a,b,c)		MIN((a), MIN((b), (c)))
 
 SDL_Surface *tiles = NULL;
+SDL_Surface *fruits = NULL;
+SDL_Surface *veggies = NULL;
 
 static SDL_Surface *tiles_orig = NULL;
 
@@ -188,4 +190,32 @@ void tiles_dispose(void)
 	tiles = NULL;
 	SDL_FreeSurface(tiles_orig);
 	tiles_orig = NULL;
+}
+
+void food_init(void)
+{
+	SDL_Surface *tmp = IMG_Load("fruits-16.png");
+	fruits = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+
+	tmp = IMG_Load("veggies-16.png");
+	veggies = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+}
+
+SDL_Rect *food_get_random_rect(void)
+{
+	static SDL_Rect rect = {.x = 0, .y = 0,
+		.w = FOOD_SIZE, .h = FOOD_SIZE};
+	rect.x = FOOD_SIZE * (rand() % 6);
+	rect.y = FOOD_SIZE * (rand() % 6);
+	return &rect;
+}
+
+void food_dispose(void)
+{
+	SDL_FreeSurface(fruits);
+	fruits = NULL;
+	SDL_FreeSurface(veggies);
+	veggies = NULL;
 }

@@ -311,7 +311,7 @@ void consumable_generate(struct Consumable *col, const struct Room *room)
 		{ .pos = { .x = 0, .y = 0 },
 			.r = CONSUMABLE_RADIUS,
 		};
-	col->color = SDLGFX_COLOR(rand() % 255, rand() % 255, rand() % 255);
+	col->sprite_rect = *food_get_random_rect();
 
 	if (!generate_safe_position(room, &col->segment.pos,
 		safe_distance, 100, true, true, true))
@@ -319,20 +319,26 @@ void consumable_generate(struct Consumable *col, const struct Room *room)
 		// spawn it on top of the snake :)
 		col->segment.pos = room->snake.pieces[0];
 	}
+	col->phase = 0;
 }
 
 void consumable_process(struct Consumable *col, double dt)
 {
-	// placeholder for moving consumables
+	col->phase += 2 * M_PI * 0.75 * dt;
+	SINCOS_FIX_INC(col->phase);
 }
 
-void consumable_draw(const struct Consumable *col)
+void consumable_draw(struct Consumable *col)
 {
 	double x = col->segment.pos.x;
 	double y = col->segment.pos.y;
 	camera_convert(&x, &y);
-	filledCircleColor(screen, x, y, col->segment.r, col->color);
-	circleRGBA(screen, x, y, col->segment.r, 0, 0, 0, 255);
+	y += (FOOD_SIZE / 4) * sin(col->phase);
+	x -= FOOD_SIZE / 2;
+	y -= FOOD_SIZE / 2;
+	SDL_Rect dst = {.x = x, .y = y, .w = FOOD_SIZE, .h = FOOD_SIZE};
+	//SDL_FillRect(screen, &dst, 0);
+	SDL_BlitSurface(fruits, &col->sprite_rect, screen, &dst);
 }
 
 void camera_prepare(const struct Snake *target, enum CameraMode cm)

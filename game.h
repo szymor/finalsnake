@@ -10,7 +10,7 @@
 #define BODY_RADIUS						(4.0)
 #define PIECE_DISTANCE					(0.5)
 #define PIECE_DRAW_INCREMENT			(12)
-#define CONSUMABLE_RADIUS				(4.0)
+#define CONSUMABLE_RADIUS				(6.0)
 #define EAT_DEPTH						(2.0)
 #define SNAKE_V_MULTIPLIER				(2.0)
 #define SNAKE_W_MULTIPLIER				(1.5)
@@ -72,7 +72,8 @@ struct Snake
 struct Consumable
 {
 	struct Segment segment;
-	Uint32 color;
+	double phase;
+	SDL_Rect sprite_rect;
 };
 
 struct Obstacle
@@ -156,7 +157,7 @@ bool snake_check_obstaclecollision(const struct Snake *snake, struct Obstacle ob
 
 void consumable_generate(struct Consumable *col, const struct Room *room);
 void consumable_process(struct Consumable *col, double dt);
-void consumable_draw(const struct Consumable *col);
+void consumable_draw(struct Consumable *col);
 
 void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, double r);
 void wall_draw(const struct Wall *wall);

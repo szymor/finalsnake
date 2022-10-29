@@ -11,10 +11,6 @@
 #define SCREEN_BPP						(16)
 #define FPS_LIMIT						(60)
 
-// it MUST be with no parentheses
-#define CHECKERBOARD_SIZE				64
-//#define CHECKERBOARD_OFF
-
 #define KEY_LEFT						SDLK_LEFT
 #define KEY_RIGHT						SDLK_RIGHT
 #if defined(MIYOO)
