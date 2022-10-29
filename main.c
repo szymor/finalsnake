@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
 	}
 	tiles_init();
 	food_init();
+	parts_init();
 
 	while (GS_QUIT != gamestate)
 	{

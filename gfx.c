@@ -11,6 +11,8 @@
 SDL_Surface *tiles = NULL;
 SDL_Surface *fruits = NULL;
 SDL_Surface *veggies = NULL;
+SDL_Surface *snake_head = NULL;
+SDL_Surface *snake_body = NULL;
 
 static SDL_Surface *tiles_orig = NULL;
 
@@ -218,4 +220,23 @@ void food_dispose(void)
 	fruits = NULL;
 	SDL_FreeSurface(veggies);
 	veggies = NULL;
+}
+
+void parts_init(void)
+{
+	SDL_Surface *tmp = IMG_Load("snake-head.png");
+	snake_head = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+
+	tmp = IMG_Load("snake-body.png");
+	snake_body = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+}
+
+void parts_dispose(void)
+{
+	SDL_FreeSurface(snake_head);
+	snake_head = NULL;
+	SDL_FreeSurface(snake_body);
+	snake_body = NULL;
 }

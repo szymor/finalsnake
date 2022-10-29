@@ -119,6 +119,7 @@ void snake_process(struct Snake *snake, double dt)
 void snake_draw(const struct Snake *snake)
 {
 	Uint32 black = SDLGFX_COLOR(0, 0, 0);
+	SDL_Rect dst;
 
 	// body
 	for (int i = snake->len - 1; i > 0; i -= PIECE_DRAW_INCREMENT)
@@ -126,16 +127,18 @@ void snake_draw(const struct Snake *snake)
 		double x = snake->pieces[i].x;
 		double y = snake->pieces[i].y;
 		camera_convert(&x, &y);
-		filledCircleColor(screen, x, y, BODY_RADIUS, black);
-		circleRGBA(screen, x, y, BODY_RADIUS, 64, 64, 64, 255);
+		dst.x = x - SNAKE_PART_SIZE / 2;
+		dst.y = y - SNAKE_PART_SIZE / 2;
+		SDL_BlitSurface(snake_body, NULL, screen, &dst);
 	}
 
 	// head
 	double x = snake->pieces[0].x;
 	double y = snake->pieces[0].y;
 	camera_convert(&x, &y);
-	filledCircleColor(screen, x, y, HEAD_RADIUS, black);
-	circleRGBA(screen, x, y, HEAD_RADIUS, 64, 64, 64, 255);
+	dst.x = x - SNAKE_PART_SIZE / 2;
+	dst.y = y - SNAKE_PART_SIZE / 2;
+	SDL_BlitSurface(snake_head, NULL, screen, &dst);
 }
 
 void snake_control(struct Snake *snake)
