@@ -1,9 +1,9 @@
 .PHONY: all clean
 
 TARGET=finalsnake
-SRC=main.c game.c
-INC=main.h game.h
-PKGS=sdl SDL_gfx
+SRC=main.c game.c gfx.c
+INC=main.h game.h gfx.h
+PKGS=sdl SDL_gfx SDL_image
 
 COMMIT_HASH != git rev-parse --short=7 HEAD
 $(shell git diff-index --quiet HEAD)
@@ -15,7 +15,7 @@ GCC=arm-linux-gcc
 SYSROOT=$(shell $(GCC) --print-sysroot)
 PKGCONFIG=$(SYSROOT)/../../bin/pkg-config
 CFLAGS = $(shell $(PKGCONFIG) --cflags $(PKGS)) -Ofast -march=armv5te -mtune=arm926ej-s -DMIYOO -DCOMMIT_HASH=$(COMMIT_HASH)
-LDFLAGS = $(shell $(PKGCONFIG) --libs $(PKGS)) -lm
+LDFLAGS = $(shell $(PKGCONFIG) --libs $(PKGS)) -lm -lpng -lz -ljpeg
 
 all: $(TARGET)
 
