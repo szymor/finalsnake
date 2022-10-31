@@ -7,7 +7,8 @@
 #define SUIT_COUNT			(4)
 #define FOOD_SIZE			(16)
 #define SNAKE_PART_SIZE		(16)
-#define ROT_ANGLE_COUNT		(8)
+#define ROT_ANGLE_COUNT		(64)
+#define BILINEAR_FILTERING	(1)
 
 // it MUST be with no parentheses
 #define CHECKERBOARD_SIZE				64

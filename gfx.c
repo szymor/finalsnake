@@ -316,6 +316,35 @@ void food_dispose(void)
 	}
 }
 
+static void get_rgba_values_32(Uint32 px, SDL_PixelFormat *fmt, Uint8 *red, Uint8 *green, Uint8 *blue, Uint8 *alpha)
+{
+	Uint32 temp;
+
+	temp = px & fmt->Rmask;
+	temp = temp >> fmt->Rshift;
+	temp = temp << fmt->Rloss;
+	*red = (Uint8)temp;
+	temp = px & fmt->Gmask;
+	temp = temp >> fmt->Gshift;
+	temp = temp << fmt->Gloss;
+	*green = (Uint8)temp;
+	temp = px & fmt->Bmask;
+	temp = temp >> fmt->Bshift;
+	temp = temp << fmt->Bloss;
+	*blue = (Uint8)temp;
+	temp = px & fmt->Amask;
+	temp = temp >> fmt->Ashift;
+	temp = temp << fmt->Aloss;
+	*alpha = (Uint8)temp;
+}
+
+static Uint8 mix_color_channel(const Uint8 color[4], const double frac[4])
+{
+	double result = (color[0] * frac[2] + color[2] * frac[0]) * frac[3] +
+		(color[1] * frac[2] + color[3] * frac[0]) * frac[1];
+	return (Uint8)result;
+}
+
 void parts_init(void)
 {
 	SDL_Surface *tmp = IMG_Load("snake-head.png");
@@ -345,6 +374,56 @@ void parts_init(void)
 		for (int y = 0; y < SNAKE_PART_SIZE; ++y)
 			for (int x = 0; x < SNAKE_PART_SIZE; ++x)
 			{
+#if BILINEAR_FILTERING
+				Uint32 *p = (Uint32 *)((Uint8 *)snake_head->pixels + y * snake_head->pitch + (x + offset) * snake_head->format->BytesPerPixel);
+				int ox = x - SNAKE_PART_SIZE / 2;
+				int oy = y - SNAKE_PART_SIZE / 2;
+				double tx = ox * cosa + oy * sina;
+				double ty = -ox * sina + oy * cosa;
+				tx += SNAKE_PART_SIZE / 2;
+				ty += SNAKE_PART_SIZE / 2;
+				const int ix = tx;
+				const int iy = ty;
+				const double u_ratio = tx - ix;
+				const double v_ratio = ty - iy;
+				const double u_opposite = 1 - u_ratio;
+				const double v_opposite = 1 - v_ratio;
+				const double frac[4] = {u_ratio, v_ratio, u_opposite, v_opposite};
+
+				// right and bottom boundaries are not handled correctly
+				// needs to be done _in_the_future_ :)
+				if (ix >= 0 && ix < (SNAKE_PART_SIZE - 1) &&
+					iy >= 0 && iy < (SNAKE_PART_SIZE - 1))
+				{
+					Uint32 tp00 = *(Uint32 *)((Uint8 *)tmp->pixels + iy * tmp->pitch + ix * tmp->format->BytesPerPixel);
+					Uint32 tp01 = *(Uint32 *)((Uint8 *)tmp->pixels + (iy + 1) * tmp->pitch + ix * tmp->format->BytesPerPixel);
+					Uint32 tp10 = *(Uint32 *)((Uint8 *)tmp->pixels + iy * tmp->pitch + (ix + 1) * tmp->format->BytesPerPixel);
+					Uint32 tp11 = *(Uint32 *)((Uint8 *)tmp->pixels + (iy + 1) * tmp->pitch + (ix + 1) * tmp->format->BytesPerPixel);
+
+					Uint8 red[4], green[4], blue[4], alpha[4];
+					get_rgba_values_32(tp00, tmp->format, &red[0], &green[0], &blue[0], &alpha[0]);
+					get_rgba_values_32(tp01, tmp->format, &red[1], &green[1], &blue[1], &alpha[1]);
+					get_rgba_values_32(tp10, tmp->format, &red[2], &green[2], &blue[2], &alpha[2]);
+					get_rgba_values_32(tp11, tmp->format, &red[3], &green[3], &blue[3], &alpha[3]);
+
+					Uint8 rred, rgreen, rblue, ralpha;
+					rred = mix_color_channel(red, frac);
+					rgreen = mix_color_channel(green, frac);
+					rblue = mix_color_channel(blue, frac);
+					ralpha = mix_color_channel(alpha, frac);
+
+					const SDL_PixelFormat *fmt = tmp->format;
+					*p = (rred >> fmt->Rloss) << fmt->Rshift |
+						(rgreen >> fmt->Gloss) << fmt->Gshift |
+						(rblue >> fmt->Bloss) << fmt->Bshift |
+						(ralpha >> fmt->Aloss) << fmt->Ashift;
+				}
+				else
+				{
+					// transparent
+					*p = 0;
+				}
+#else
 				Uint32 *p = (Uint32 *)((Uint8 *)snake_head->pixels + y * snake_head->pitch + (x + offset) * snake_head->format->BytesPerPixel);
 				int ox = x - SNAKE_PART_SIZE / 2;
 				int oy = y - SNAKE_PART_SIZE / 2;
@@ -363,6 +442,7 @@ void parts_init(void)
 					// transparent
 					*p = 0;
 				}
+#endif
 			}
 	}
 	SDL_UnlockSurface(snake_head);
