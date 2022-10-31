@@ -138,7 +138,15 @@ void snake_draw(const struct Snake *snake)
 	camera_convert(&x, &y);
 	dst.x = x - SNAKE_PART_SIZE / 2;
 	dst.y = y - SNAKE_PART_SIZE / 2;
-	SDL_BlitSurface(snake_head, NULL, screen, &dst);
+	double head_angle = snake->dir - *camera.angle + (M_PI / ROT_ANGLE_COUNT);
+	while (head_angle < 0)
+		head_angle += 2 * M_PI;
+	int head_sprite_no = ROT_ANGLE_COUNT * head_angle / (2 * M_PI);
+	if (head_sprite_no >= ROT_ANGLE_COUNT)
+		head_sprite_no %= ROT_ANGLE_COUNT;
+	SDL_Rect src = {.x = head_sprite_no * SNAKE_PART_SIZE, .y = 0,
+		.w = SNAKE_PART_SIZE, .h = SNAKE_PART_SIZE};
+	SDL_BlitSurface(snake_head, &src, screen, &dst);
 }
 
 void snake_control(struct Snake *snake)
@@ -348,6 +356,8 @@ void camera_prepare(const struct Snake *target, enum CameraMode cm)
 {
 	camera.cm = cm;
 	camera.center = &target->pieces[0];
+	camera.angle = &camera.angle_store;
+	camera.angle_store = 0;
 	if (CM_TPP == cm)
 	{
 		camera.angle = &target->dir;

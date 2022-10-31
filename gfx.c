@@ -325,6 +325,49 @@ void parts_init(void)
 	tmp = IMG_Load("snake-body.png");
 	snake_body = SDL_DisplayFormatAlpha(tmp);
 	SDL_FreeSurface(tmp);
+
+	// generate rotated sprites for the head
+	tmp = snake_head;
+	snake_head = SDL_CreateRGBSurface(0,
+		SNAKE_PART_SIZE * ROT_ANGLE_COUNT, SNAKE_PART_SIZE,
+		tmp->format->BitsPerPixel,
+		tmp->format->Rmask,
+		tmp->format->Gmask,
+		tmp->format->Bmask,
+		tmp->format->Amask);
+	SDL_LockSurface(snake_head);
+	for (int i = 0; i < ROT_ANGLE_COUNT; ++i)
+	{
+		double angle = i * 2 * M_PI / ROT_ANGLE_COUNT;
+		double sina = sin(angle);
+		double cosa = cos(angle);
+		int offset = i * SNAKE_PART_SIZE;
+		for (int y = 0; y < SNAKE_PART_SIZE; ++y)
+			for (int x = 0; x < SNAKE_PART_SIZE; ++x)
+			{
+				Uint32 *p = (Uint32 *)((Uint8 *)snake_head->pixels + y * snake_head->pitch + (x + offset) * snake_head->format->BytesPerPixel);
+				int ox = x - SNAKE_PART_SIZE / 2;
+				int oy = y - SNAKE_PART_SIZE / 2;
+				double tx = ox * cosa + oy * sina;
+				double ty = -ox * sina + oy * cosa;
+				int ix = tx + SNAKE_PART_SIZE / 2;
+				int iy = ty + SNAKE_PART_SIZE / 2;
+				if (ix >= 0 && ix < SNAKE_PART_SIZE &&
+					iy >= 0 && iy < SNAKE_PART_SIZE)
+				{
+					Uint32 *tp = (Uint32 *)((Uint8 *)tmp->pixels + iy * tmp->pitch + ix * tmp->format->BytesPerPixel);
+					*p = *tp;
+				}
+				else
+				{
+					// transparent
+					*p = 0;
+				}
+			}
+	}
+	SDL_UnlockSurface(snake_head);
+
+	SDL_FreeSurface(tmp);
 }
 
 // it does not need init before as a side effect
