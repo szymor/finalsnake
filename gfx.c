@@ -296,9 +296,9 @@ void food_recolor(int hue)
 SDL_Rect *food_get_random_rect(void)
 {
 	static SDL_Rect rect = {.x = 0, .y = 0,
-		.w = FOOD_SIZE, .h = FOOD_SIZE};
-	rect.x = FOOD_SIZE * (rand() % 6);
-	rect.y = FOOD_SIZE * (rand() % 6);
+		.w = CONSUMABLE_SIZE, .h = CONSUMABLE_SIZE};
+	rect.x = CONSUMABLE_SIZE * (rand() % 6);
+	rect.y = CONSUMABLE_SIZE * (rand() % 6);
 	return &rect;
 }
 

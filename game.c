@@ -344,11 +344,10 @@ void consumable_draw(struct Consumable *col)
 	double x = col->segment.pos.x;
 	double y = col->segment.pos.y;
 	camera_convert(&x, &y);
-	y += (FOOD_SIZE / 4) * sin(col->phase);
-	x -= FOOD_SIZE / 2;
-	y -= FOOD_SIZE / 2;
-	SDL_Rect dst = {.x = x, .y = y, .w = FOOD_SIZE, .h = FOOD_SIZE};
-	//SDL_FillRect(screen, &dst, 0);
+	y += (CONSUMABLE_SIZE / 4) * sin(col->phase);
+	x -= CONSUMABLE_SIZE / 2;
+	y -= CONSUMABLE_SIZE / 2;
+	SDL_Rect dst = {.x = x, .y = y, .w = CONSUMABLE_SIZE, .h = CONSUMABLE_SIZE};
 	SDL_BlitSurface(fruits, &col->sprite_rect, screen, &dst);
 }
 
