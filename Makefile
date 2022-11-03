@@ -3,7 +3,7 @@
 TARGET=finalsnake
 SRC=main.c game.c gfx.c
 INC=main.h game.h gfx.h
-PKGS = sdl SDL_gfx SDL_image
+PKGS = sdl SDL_gfx SDL_image SDL_mixer
 
 COMMIT_HASH != git rev-parse --short=7 HEAD
 $(shell git diff-index --quiet HEAD)

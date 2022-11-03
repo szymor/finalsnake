@@ -2,6 +2,7 @@
 #define _H_MAIN
 
 #include <SDL.h>
+#include <SDL_mixer.h>
 
 #define xstr(s) str(s)
 #define str(s) #s
@@ -49,5 +50,7 @@ enum MenuOptions
 extern int menu_options[];
 extern SDL_Surface *screen;
 extern enum GameState gamestate;
+
+extern Mix_Chunk *sfx_crunch;
 
 #endif

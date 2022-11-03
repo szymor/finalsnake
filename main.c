@@ -23,6 +23,7 @@ enum GameState
 
 SDL_Surface *screen = NULL;
 enum GameState gamestate = GS_MENU;
+Mix_Chunk *sfx_crunch = NULL;
 
 int menu_options[MO_NUM];
 int menu_options_num[MO_NUM] = {LT_NUM, W_NUM};
@@ -62,6 +63,25 @@ int main(int argc, char *argv[])
 		printf("IMG_Init: %s\n", IMG_GetError());
 		exit(0);
 	}
+
+	int mix_flags = MIX_INIT_MOD;
+	if (mix_flags != mix_flags & Mix_Init(mix_flags))
+	{
+		printf("Mix_Init: %s\n", Mix_GetError());
+		exit(0);
+	}
+	if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 1, 1024) == -1)
+	{
+		printf("Mix_OpenAudio: %s\n", Mix_GetError());
+		exit(0);
+	}
+	sfx_crunch = Mix_LoadWAV("crunch.wav");
+	if (!sfx_crunch)
+	{
+		printf("Mix_LoadWAV: %s\n", Mix_GetError());
+		// it is not a critical error, so let it pass
+	}
+
 	tiles_init();
 	food_init();
 	parts_init();

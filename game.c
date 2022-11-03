@@ -198,6 +198,7 @@ void snake_eat_consumables(struct Snake *snake, struct Room *room)
 		vsub(&diff, &room->consumables[i].segment.pos);
 		if (vlen(&diff) < (HEAD_RADIUS + room->consumables[i].segment.r - EAT_DEPTH))
 		{
+			Mix_PlayChannel(-1, sfx_crunch, 0);
 			snake_add_segments(snake, PIECE_DRAW_INCREMENT);
 			consumable_generate(&room->consumables[i], room);
 		}
