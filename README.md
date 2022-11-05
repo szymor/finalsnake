@@ -4,6 +4,8 @@
 As the name suggests, it is yet another implementation of a popular Snake game. This time you are not limited to four directions when it comes to turning. The game was created with PocketGo and other retrohandhelds in mind. I hope you like it.
 
 ## contribution
+- crunch sound by Borgory from [Freesound](https://freesound.org/),
+- circular saw blades from [Vecteezy](https://www.vecteezy.com/),
 - fruits and veggies by [Mr. Milkduds](https://mrmilkduds.itch.io/).
 
 ## to do
