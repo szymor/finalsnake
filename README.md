@@ -7,11 +7,9 @@ As the name suggests, it is yet another implementation of a popular Snake game. 
 - fruits and veggies by [Mr. Milkduds](https://mrmilkduds.itch.io/).
 
 ## to do
-- graphics - tiled background (hearts, stars, squares, diamonds, etc.), sprites for snake and food, maybe simple animations?
-- new camera mode - TPP but with momentum,
+- graphics - better sprites for snake, sprites for obstacles and walls, maybe simple animations?
 - music and sounds,
 - custom level support,
 - multiple snakes (one for player, others for AI),
-- various behaviour of food - static, running away, wandering, tail-following, evading, growing (gives more length when eaten),
-- various effects of food (maybe dependent on color) - longer, able to eat obstacles and its own tail, faster, slower,
-- maybe acceleration should make snake wiggle?
+- various effects of food (dependent on type) - longer, able to eat obstacles and its own tail, faster, slower,
+- combos - eat fruits and veggies in a certain order to get additional bonuses.
