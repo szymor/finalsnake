@@ -162,7 +162,7 @@ static void surface_recolor(SDL_Surface *s, int hue)
 
 void tiles_init(void)
 {
-	SDL_Surface *tmp = IMG_Load("tiles" xstr(CHECKERBOARD_SIZE) ".png");
+	SDL_Surface *tmp = IMG_Load(GFX_DIR "tiles" xstr(CHECKERBOARD_SIZE) ".png");
 	tiles_orig = SDL_DisplayFormat(tmp);
 	SDL_FreeSurface(tmp);
 
@@ -275,11 +275,11 @@ void tiles_dispose(void)
 
 void food_init(void)
 {
-	SDL_Surface *tmp = IMG_Load("fruits-16.png");
+	SDL_Surface *tmp = IMG_Load(GFX_DIR "fruits-16.png");
 	fruits = SDL_DisplayFormatAlpha(tmp);
 	SDL_FreeSurface(tmp);
 
-	tmp = IMG_Load("veggies-16.png");
+	tmp = IMG_Load(GFX_DIR "veggies-16.png");
 	veggies = SDL_DisplayFormatAlpha(tmp);
 	SDL_FreeSurface(tmp);
 }
@@ -347,11 +347,11 @@ static Uint8 mix_color_channel(const Uint8 color[4], const double frac[4])
 
 void parts_init(void)
 {
-	SDL_Surface *tmp = IMG_Load("snake-head.png");
+	SDL_Surface *tmp = IMG_Load(GFX_DIR "snake-head.png");
 	snake_head = SDL_DisplayFormatAlpha(tmp);
 	SDL_FreeSurface(tmp);
 
-	tmp = IMG_Load("snake-body.png");
+	tmp = IMG_Load(GFX_DIR "snake-body.png");
 	snake_body = SDL_DisplayFormatAlpha(tmp);
 	SDL_FreeSurface(tmp);
 

@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 		printf("Mix_OpenAudio: %s\n", Mix_GetError());
 		exit(0);
 	}
-	sfx_crunch = Mix_LoadWAV("crunch.wav");
+	sfx_crunch = Mix_LoadWAV(SFX_DIR "crunch.wav");
 	if (!sfx_crunch)
 	{
 		printf("Mix_LoadWAV: %s\n", Mix_GetError());

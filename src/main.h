@@ -12,6 +12,9 @@
 #define SCREEN_BPP						(16)
 #define FPS_LIMIT						(60)
 
+#define GFX_DIR							"gfx/"
+#define SFX_DIR							"sfx/"
+
 #define KEY_LEFT						SDLK_LEFT
 #define KEY_RIGHT						SDLK_RIGHT
 #if defined(MIYOO)
