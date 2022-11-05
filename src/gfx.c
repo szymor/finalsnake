@@ -110,6 +110,20 @@ static void hsv_to_rgb(double *hr, double *sg, double *vb)
 	*vb = b;
 }
 
+Uint32 get_wall_color(int hue)
+{
+	Uint8 r, g, b, a;
+	double rh = 2 * M_PI * hue / HUE_PRECISION;
+	double gs = 0.7;
+	double bv = 0.2;
+	hsv_to_rgb(&rh, &gs, &bv);
+	r = rh * 255.0;
+	g = gs * 255.0;
+	b = bv * 255.0;
+	a = 255;
+	return (r << 24) | (g << 16) | (b << 8) | a;
+}
+
 // use for 32-bit surfaces only (DisplayFormatAlpha surfaces also count)
 static void surface_recolor(SDL_Surface *s, int hue)
 {

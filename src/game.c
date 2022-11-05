@@ -471,7 +471,7 @@ void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, do
 	wall->r = r;
 }
 
-void wall_draw(const struct Wall *wall)
+void wall_draw(const struct Wall *wall, Uint32 color)
 {
 	double x1 = wall->start.x;
 	double y1 = wall->start.y;
@@ -485,9 +485,9 @@ void wall_draw(const struct Wall *wall)
 	voff = (struct Vec2D){ .x = -voff.y, .y = voff.x };
 	Sint16 vx[4] = {x1 + voff.x, x2 + voff.x, x2 - voff.x, x1 - voff.x};
 	Sint16 vy[4] = {y1 + voff.y, y2 + voff.y, y2 - voff.y, y1 - voff.y};
-	filledPolygonRGBA(screen, vx, vy, 4, 0, 0, 0, 255);
-	filledCircleRGBA(screen, x1, y1, wall->r, 0, 0, 0, 255);
-	filledCircleRGBA(screen, x2, y2, wall->r, 0, 0, 0, 255);
+	filledPolygonColor(screen, vx, vy, 4, color);
+	filledCircleColor(screen, x1, y1, wall->r, color);
+	filledCircleColor(screen, x2, y2, wall->r, color);
 }
 
 struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos)
@@ -528,12 +528,12 @@ void obstacle_init(struct Obstacle *obstacle, double x, double y, double r)
 	obstacle->segment.r = r;
 }
 
-void obstacle_draw(const struct Obstacle *obstacle)
+void obstacle_draw(const struct Obstacle *obstacle, Uint32 color)
 {
 	double x = obstacle->segment.pos.x;
 	double y = obstacle->segment.pos.y;
 	camera_convert(&x, &y);
-	filledCircleRGBA(screen, x, y, obstacle->segment.r, 0, 0, 0, 255);
+	filledCircleColor(screen, x, y, obstacle->segment.r, color);
 }
 
 void room_init(struct Room *room)
@@ -707,6 +707,7 @@ void room_init(struct Room *room)
 	tiles_prepare(rand() % SUIT_COUNT, hue);
 	food_recolor(hue);
 	parts_recolor(hue);
+	room->wall_color = get_wall_color(hue);
 }
 
 void room_dispose(struct Room *room)
@@ -834,11 +835,11 @@ void room_draw(const struct Room *room)
 	}
 	for (int i = 0; i < room->walls_num; ++i)
 	{
-		wall_draw(&room->walls[i]);
+		wall_draw(&room->walls[i], room->wall_color);
 	}
 	for (int i = 0; i < room->obstacles_num; ++i)
 	{
-		obstacle_draw(&room->obstacles[i]);
+		obstacle_draw(&room->obstacles[i], room->wall_color);
 	}
 	snake_draw(&room->snake);
 }

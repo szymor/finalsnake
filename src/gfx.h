@@ -113,4 +113,6 @@ void parts_init(void);
 void parts_recolor(int hue);
 void parts_dispose(void);
 
+Uint32 get_wall_color(int hue);
+
 #endif
