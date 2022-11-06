@@ -1,6 +1,7 @@
 #include "gfx.h"
 #include "main.h"
 #include <SDL_image.h>
+#include <SDL_gfxPrimitives.h>
 #include <math.h>
 
 #define MAX(a,b)		((a) > (b) ? (a) : (b))
@@ -15,6 +16,7 @@ SDL_Surface *snake_head = NULL;
 SDL_Surface *snake_body = NULL;
 
 static SDL_Surface *tiles_orig = NULL;
+static SDL_Surface *obstacle_surfaces[OBS_SPRSHEET_COUNT];
 
 static void rgb_to_hsv(double *rh, double *gs, double *bv);
 static void hsv_to_rgb(double *hr, double *sg, double *vb);
@@ -485,4 +487,38 @@ void parts_dispose(void)
 		SDL_FreeSurface(snake_body);
 		snake_body = NULL;
 	}
+}
+
+void obstacle_free_surfaces(void)
+{
+	for (int i = 0; i < OBS_SPRSHEET_COUNT; ++i)
+	{
+		if (obstacle_surfaces[i])
+		{
+			SDL_FreeSurface(obstacle_surfaces[i]);
+			obstacle_surfaces[i] = NULL;
+		}
+	}
+}
+
+SDL_Surface *obstacle_get_surface(int radius, Uint32 color)
+{
+	if (NULL == obstacle_surfaces[radius])
+	{
+		int ssize = radius * 2 + 4;
+		SDL_Surface *temp = SDL_CreateRGBSurface(0, ssize, ssize,
+			32, 0xff, 0xff00, 0xff0000, 0xff000000);
+		obstacle_surfaces[radius] = SDL_DisplayFormatAlpha(temp);
+		SDL_FreeSurface(temp);
+		SDL_FillRect(obstacle_surfaces[radius], NULL, 0);
+		aacircleColor(obstacle_surfaces[radius],
+			radius + 2, radius + 2, radius - 2, color);
+		aacircleColor(obstacle_surfaces[radius],
+			radius + 2, radius + 2, radius - 1, color);
+		aacircleColor(obstacle_surfaces[radius],
+			radius + 2, radius + 2, radius, color);
+		filledCircleColor(obstacle_surfaces[radius],
+			radius + 2, radius + 2, radius, color);
+	}
+	return obstacle_surfaces[radius];
 }

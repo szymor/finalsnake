@@ -293,6 +293,7 @@ void gs_game_process(void)
 		}
 	}
 	room_dispose(&room);
+	obstacle_free_surfaces();
 }
 
 void gs_gameover_process(void)

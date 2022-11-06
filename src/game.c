@@ -533,7 +533,12 @@ void obstacle_draw(const struct Obstacle *obstacle, Uint32 color)
 	double x = obstacle->segment.pos.x;
 	double y = obstacle->segment.pos.y;
 	camera_convert(&x, &y);
-	filledCircleColor(screen, x, y, obstacle->segment.r, color);
+	SDL_Surface *spritesheet = obstacle_get_surface(obstacle->segment.r, color);
+	SDL_Rect dst;
+	dst.w = dst.h = spritesheet->h;
+	dst.x = x - dst.w / 2;
+	dst.y = y - dst.h / 2;
+	SDL_BlitSurface(spritesheet, NULL, screen, &dst);
 }
 
 void room_init(struct Room *room)

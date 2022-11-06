@@ -15,7 +15,7 @@ GCC=arm-linux-gcc
 SYSROOT=$(shell $(GCC) --print-sysroot)
 PKGCONFIG=$(SYSROOT)/../../bin/pkg-config
 CFLAGS = $(shell $(PKGCONFIG) --cflags $(PKGS)) -Ofast -march=armv5te -mtune=arm926ej-s -DMIYOO -DCOMMIT_HASH=$(COMMIT_HASH)
-LDFLAGS = $(shell $(PKGCONFIG) --libs $(PKGS)) -lm -lpng -lz -ljpeg
+LDFLAGS = $(shell $(PKGCONFIG) --libs $(PKGS)) -lm -lpng -lz -ljpeg -lmikmod -lmpg123 -lvorbisfile -lvorbis -logg
 
 all: $(TARGET)
 
