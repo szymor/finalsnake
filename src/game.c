@@ -3,6 +3,14 @@
 #include "game.h"
 #include "gfx.h"
 
+enum Region
+{
+	R_TOP = 1,
+	R_BOTTOM = 2,
+	R_LEFT = 4,
+	R_RIGHT = 8
+};
+
 int fps = 0;
 
 struct Camera camera = {
@@ -471,6 +479,20 @@ void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, do
 	wall->r = r;
 }
 
+static int getRegion(int x, int y, int r)
+{
+	int code = 0;
+	if (x < -r)
+		code |= R_LEFT;
+	else if (x >= SCREEN_WIDTH + r)
+		code |= R_RIGHT;
+	if (y < -r)
+		code |= R_TOP;
+	else if (y >= SCREEN_HEIGHT + r)
+		code |= R_BOTTOM;
+	return code;
+}
+
 void wall_draw(const struct Wall *wall, Uint32 color)
 {
 	double x1 = wall->start.x;
@@ -479,6 +501,63 @@ void wall_draw(const struct Wall *wall, Uint32 color)
 	double y2 = wall->end.y;
 	camera_convert(&x1, &y1);
 	camera_convert(&x2, &y2);
+
+	// check if on screen - Cohen Sutherland Clipping
+	int c1 = getRegion(x1, y1, wall->r);
+	int c2 = getRegion(x2, y2, wall->r);
+	int failsafe = 0;
+	while (1)
+	{
+		if (c1 & c2)	// trivial reject
+			return;
+		else if (!(c1 | c2))	// trivial accept
+			break;
+		else if (4 == failsafe)
+		{
+			printf("FAILSAFE: %01x %01x %d %d %d %d\n",
+				c1, c2, (int)x1, (int)y1, (int)x2, (int)y2);
+			break;
+		}
+		else
+		{
+			++failsafe;
+			int x, y;
+			int codeout = c1 ? c1 : c2;
+			if (codeout & R_TOP)
+			{
+				y = -wall->r;
+				x = x1 + (x2 - x1) * (y - y1) / (y2 - y1);
+			}
+			else if (codeout & R_BOTTOM)
+			{
+				y = SCREEN_HEIGHT - 1 + wall->r;
+				x = x1 + (x2 - x1) * (y - y1) / (y2 - y1);
+			}
+			else if (codeout & R_LEFT)
+			{
+				x = -wall->r;
+				y = y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+			}
+			else // R_RIGHT
+			{
+				x = SCREEN_WIDTH - 1 + wall->r;
+				y = y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+			}
+
+			if (codeout == c1)
+			{
+				x1 = x;
+				y1 = y;
+				c1 = getRegion(x1, y1, wall->r);
+			}
+			else
+			{
+				x2 = x;
+				y2 = y;
+				c2 = getRegion(x2, y2, wall->r);
+			}
+		}
+	}
 
 	struct Vec2D voff = { .x = x2 - x1, .y = y2 - y1 };
 	vmul(&voff, wall->r / vlen(&voff));
