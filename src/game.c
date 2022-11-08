@@ -331,7 +331,8 @@ void consumable_generate(struct Consumable *col, const struct Room *room)
 		{ .pos = { .x = 0, .y = 0 },
 			.r = CONSUMABLE_RADIUS,
 		};
-	col->sprite_rect = *food_get_random_rect();
+	col->type = get_random_food();
+	get_sprite_from_food(col->type, &col->food_surface, &col->src_rect);
 
 	if (!generate_safe_position(room, &col->segment.pos,
 		safe_distance, 100, true, true, true))
@@ -357,7 +358,7 @@ void consumable_draw(struct Consumable *col)
 	x -= CONSUMABLE_SIZE / 2;
 	y -= CONSUMABLE_SIZE / 2;
 	SDL_Rect dst = {.x = x, .y = y, .w = CONSUMABLE_SIZE, .h = CONSUMABLE_SIZE};
-	SDL_BlitSurface(fruits, &col->sprite_rect, screen, &dst);
+	SDL_BlitSurface(col->food_surface, &col->src_rect, screen, &dst);
 }
 
 void camera_prepare(const struct Snake *target, enum CameraMode cm)
@@ -781,17 +782,18 @@ void room_init(struct Room *room)
 		} break;
 	}
 
-	for (int i = 0; i < room->consumables_num; ++i)
-	{
-		// needs to be done after wall init
-		consumable_generate(&room->consumables[i], room);
-	}
-
 	int hue = rand() % HUE_PRECISION;
 	tiles_prepare(rand() % SUIT_COUNT, hue);
 	food_recolor(hue);
 	parts_recolor(hue);
 	room->wall_color = get_wall_color(hue);
+
+	for (int i = 0; i < room->consumables_num; ++i)
+	{
+		// needs to be done after wall init
+		// AND after food_recolor - food surfaces are reallocated there
+		consumable_generate(&room->consumables[i], room);
+	}
 }
 
 void room_dispose(struct Room *room)

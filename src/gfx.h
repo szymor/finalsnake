@@ -17,6 +17,9 @@
 #define CHECKERBOARD_SIZE				64
 //#define CHECKERBOARD_OFF
 
+#define FRUITS_COUNT	(FRUIT_END - FRUIT_START)
+#define VEGGIES_COUNT	(VEGE_END - VEGE_START)
+
 enum Food
 {
 	FRUIT_START = 0,
@@ -109,8 +112,9 @@ void tiles_dispose(void);
 
 void food_init(void);
 void food_recolor(int hue);
-SDL_Rect *food_get_random_rect(void);
 void food_dispose(void);
+enum Food get_random_food(void);
+void get_sprite_from_food(enum Food food, SDL_Surface **surface, SDL_Rect *rect);
 
 void parts_init(void);
 void parts_recolor(int hue);

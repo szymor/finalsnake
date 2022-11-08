@@ -3,6 +3,7 @@
 #include <SDL_image.h>
 #include <SDL_gfxPrimitives.h>
 #include <math.h>
+#include <stdbool.h>
 
 #define MAX(a,b)		((a) > (b) ? (a) : (b))
 #define MIN(a,b)		((a) < (b) ? (a) : (b))
@@ -309,15 +310,6 @@ void food_recolor(int hue)
 	surface_recolor(veggies, hue);
 }
 
-SDL_Rect *food_get_random_rect(void)
-{
-	static SDL_Rect rect = {.x = 0, .y = 0,
-		.w = CONSUMABLE_SIZE, .h = CONSUMABLE_SIZE};
-	rect.x = CONSUMABLE_SIZE * (rand() % 6);
-	rect.y = CONSUMABLE_SIZE * (rand() % 6);
-	return &rect;
-}
-
 void food_dispose(void)
 {
 	if (fruits)
@@ -330,6 +322,26 @@ void food_dispose(void)
 		SDL_FreeSurface(veggies);
 		veggies = NULL;
 	}
+}
+
+enum Food get_random_food(void)
+{
+	int ret = rand() % (FRUITS_COUNT + VEGGIES_COUNT);
+	if (ret >= FRUIT_END)
+	{
+		ret += -FRUIT_END + VEGE_START;
+	}
+	return (enum Food)ret;
+}
+
+void get_sprite_from_food(enum Food food, SDL_Surface **surface, SDL_Rect *rect)
+{
+	const bool is_fruit = food < FRUIT_END;
+	const int index = food - (is_fruit ? FRUIT_START : VEGE_START);
+	*surface = is_fruit ? fruits : veggies;
+	rect->w = rect->h = CONSUMABLE_SIZE;
+	rect->x = CONSUMABLE_SIZE * (index % 6);	// spritesheet is 6x6
+	rect->y = CONSUMABLE_SIZE * (index / 6);
 }
 
 static void get_rgba_values_32(Uint32 px, SDL_PixelFormat *fmt, Uint8 *red, Uint8 *green, Uint8 *blue, Uint8 *alpha)

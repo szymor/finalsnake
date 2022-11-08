@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <SDL.h>
+#include "gfx.h"
 
 #define MAX_SNAKE_LEN					(10240)
 #define START_LEN						(60)
@@ -73,7 +74,9 @@ struct Consumable
 {
 	struct Segment segment;
 	double phase;
-	SDL_Rect sprite_rect;
+	enum Food type;
+	SDL_Surface *food_surface;
+	SDL_Rect src_rect;
 };
 
 struct Obstacle
