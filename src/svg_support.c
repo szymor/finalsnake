@@ -36,7 +36,7 @@ SDL_Surface* SVG_LoadSizedSVG_RW(const char* src, int width, int height)
     float scale = 1.0f;
 
     /* For now just just use default units of pixels at 96 DPI */
-    image = nsvgParseFromFile(src, "px", 246);
+    image = nsvgParseFromFile(src, "px", 96);
     if(!image){
         return NULL;
     }
