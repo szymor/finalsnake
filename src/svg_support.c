@@ -50,7 +50,6 @@ SDL_Surface* SVG_LoadSizedSVG_RW(const char* src, int width, int height)
     {
         IMG_SetError("Couldn't create SVG rasterizer");
         nsvgDelete(image);
-        printf("a");
         return NULL;
     }
 
@@ -77,14 +76,12 @@ SDL_Surface* SVG_LoadSizedSVG_RW(const char* src, int width, int height)
     surface = SDL_CreateRGBSurface(0, 
             (int)ceilf(image->width * scale),
             (int)ceilf(image->height * scale),
-            32,
-            0,0,0,0);
+            32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
     if(!surface)
     {
         nsvgDeleteRasterizer(rasterizer);
         nsvgDelete(image);
         return NULL;
-        printf("b");
     }
 
     nsvgRasterize(rasterizer, image, 0.0f, 0.0f, scale, 
