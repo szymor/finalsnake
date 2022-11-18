@@ -62,7 +62,8 @@ NSVGrasterizer* nsvgCreateRasterizer(void);
 //   stride - number of bytes per scaleline in the destination buffer
 void nsvgRasterize(NSVGrasterizer* r,
 				   NSVGimage* image, float tx, float ty, float scale,
-				   unsigned char* dst, int w, int h, int stride);
+				   unsigned char* dst, int w, int h, int stride,
+				   int cr, int cg, int cb, int ca);
 
 // Deletes rasterizer context.
 void nsvgDeleteRasterizer(NSVGrasterizer*);
@@ -1366,7 +1367,8 @@ static void dumpEdges(NSVGrasterizer* r, const char* name)
 
 void nsvgRasterize(NSVGrasterizer* r,
 				   NSVGimage* image, float tx, float ty, float scale,
-				   unsigned char* dst, int w, int h, int stride)
+				   unsigned char* dst, int w, int h, int stride,
+				   int cr, int cg, int cb, int ca)
 {
 	NSVGshape *shape = NULL;
 	NSVGedge *e = NULL;
@@ -1392,6 +1394,13 @@ void nsvgRasterize(NSVGrasterizer* r,
 			continue;
 
 		if (shape->fill.type != NSVG_PAINT_NONE) {
+
+			// recolor hack
+			if (shape->fill.type == NSVG_PAINT_COLOR)
+			{
+				shape->fill.color = nsvg__RGBA(cr, cg, cb, ca);
+			}
+
 			nsvg__resetPool(r);
 			r->freelist = NULL;
 			r->nedges = 0;

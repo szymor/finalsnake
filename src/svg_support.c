@@ -28,7 +28,8 @@ int IMG_isSVG(SDL_RWops* src)
 }
 
 /* Load a SVG type image from an SDL datasource */
-SDL_Surface* SVG_LoadSizedSVG_RW(const char* src, int width, int height)
+SDL_Surface* SVG_LoadSizedSVG_RW(const char* src, int width, int height,
+	int cr, int cg, int cb, int ca)
 {
     struct NSVGimage* image;
     struct NSVGrasterizer* rasterizer;
@@ -57,7 +58,7 @@ SDL_Surface* SVG_LoadSizedSVG_RW(const char* src, int width, int height)
     {
         float scale_x = (float)width / image->width;
         float scale_y = (float)height / image->height;
-        
+
         scale = SDL_min(scale_x, scale_y);
     }
     else if(width > 0)
@@ -68,12 +69,12 @@ SDL_Surface* SVG_LoadSizedSVG_RW(const char* src, int width, int height)
     {
         scale = (float)height / image->height;
     }
-    else 
+    else
     {
         scale = 1.0f;
     }
 
-    surface = SDL_CreateRGBSurface(0, 
+    surface = SDL_CreateRGBSurface(0,
             (int)ceilf(image->width * scale),
             (int)ceilf(image->height * scale),
             32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
@@ -84,11 +85,11 @@ SDL_Surface* SVG_LoadSizedSVG_RW(const char* src, int width, int height)
         return NULL;
     }
 
-    nsvgRasterize(rasterizer, image, 0.0f, 0.0f, scale, 
+    nsvgRasterize(rasterizer, image, 0.0f, 0.0f, scale,
             (unsigned char*)surface->pixels,
-            surface->w, surface->h, surface->pitch);
+            surface->w, surface->h, surface->pitch,
+            cr, cg, cb, ca);
     nsvgDeleteRasterizer(rasterizer);
     nsvgDelete(image);
     return surface;
 }
-

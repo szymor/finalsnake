@@ -1,5 +1,6 @@
 #include "gfx.h"
 #include "main.h"
+#include "svg_support.h"
 #include <SDL_image.h>
 #include <SDL_gfxPrimitives.h>
 #include <math.h>
@@ -517,20 +518,19 @@ SDL_Surface *obstacle_get_surface(int radius, Uint32 color)
 {
 	if (NULL == obstacle_surfaces[radius])
 	{
+		int num = rand() % 6 + 1;
+		char path[64];
 		int ssize = radius * 2 + 4;
-		SDL_Surface *temp = SDL_CreateRGBSurface(0, ssize, ssize,
-			32, 0xff, 0xff00, 0xff0000, 0xff000000);
+		int cr = (color >> 24) & 0xff;
+		int cg = (color >> 16) & 0xff;
+		int cb = (color >> 8) & 0xff;
+		int ca = color & 0xff;
+
+		sprintf(path, GFX_DIR "saw%d.svg", num);
+		SDL_Surface *temp = SVG_LoadSizedSVG_RW(path, ssize, ssize,
+			cr, cg, cb, ca);
 		obstacle_surfaces[radius] = SDL_DisplayFormatAlpha(temp);
 		SDL_FreeSurface(temp);
-		SDL_FillRect(obstacle_surfaces[radius], NULL, 0);
-		aacircleColor(obstacle_surfaces[radius],
-			radius + 2, radius + 2, radius - 2, color);
-		aacircleColor(obstacle_surfaces[radius],
-			radius + 2, radius + 2, radius - 1, color);
-		aacircleColor(obstacle_surfaces[radius],
-			radius + 2, radius + 2, radius, color);
-		filledCircleColor(obstacle_surfaces[radius],
-			radius + 2, radius + 2, radius, color);
 	}
 	return obstacle_surfaces[radius];
 }

@@ -2,7 +2,7 @@
 
 TARGET=finalsnake
 SRC=$(addprefix src/,main.c game.c gfx.c svg_support.c)
-INC=$(addprefix src/,main.h game.h gfx.h svg_support.h)
+INC=$(addprefix src/,main.h game.h gfx.h svg_support.h nanosvg.h nanosvgrast.h)
 PKGS = sdl SDL_gfx SDL_image SDL_mixer
 
 COMMIT_HASH != git rev-parse --short=7 HEAD
