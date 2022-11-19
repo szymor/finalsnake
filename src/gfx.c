@@ -528,7 +528,7 @@ SDL_Surface *obstacle_get_surface(int radius, Uint32 color)
 
 		sprintf(path, GFX_DIR "saw%d.svg", num);
 		SDL_Surface *temp = SVG_LoadSizedSVG_RW(path, ssize, ssize,
-			cr, cg, cb, ca);
+			cr, cg, cb, ca, 0);
 		obstacle_surfaces[radius] = SDL_DisplayFormatAlpha(temp);
 		SDL_FreeSurface(temp);
 	}

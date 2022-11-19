@@ -4,5 +4,5 @@
 
 int IMG_isSVG(SDL_RWops* src);
 SDL_Surface* SVG_LoadSizedSVG_RW(const char* src, int width, int height,
-	int cr, int cg, int cb, int ca);
+	int cr, int cg, int cb, int ca, float angle);
 #endif

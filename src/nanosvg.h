@@ -163,11 +163,11 @@ typedef struct NSVGimage
 } NSVGimage;
 
 // Parses SVG file from a file, returns SVG image as paths.
-NSVGimage* nsvgParseFromFile(const char* filename, const char* units, float dpi);
+NSVGimage* nsvgParseFromFile(const char* filename, const char* units, float dpi, float angle);
 
 // Parses SVG file from a null terminated string, returns SVG image as paths.
 // Important note: changes the string.
-NSVGimage* nsvgParse(char* input, const char* units, float dpi);
+NSVGimage* nsvgParse(char* input, const char* units, float dpi, float angle);
 
 // Duplicates a path.
 NSVGpath* nsvgDuplicatePath(NSVGpath* p);
@@ -610,7 +610,7 @@ static void nsvg__curveBounds(float* bounds, float* curve)
 	}
 }
 
-static NSVGparser* nsvg__createParser(void)
+static NSVGparser* nsvg__createParser(float angle)
 {
 	NSVGparser* p;
 	p = (NSVGparser*)malloc(sizeof(NSVGparser));
@@ -623,6 +623,18 @@ static NSVGparser* nsvg__createParser(void)
 
 	// Init style
 	nsvg__xformIdentity(p->attr[0].xform);
+
+	float translate[6];
+	nsvg__xformSetTranslation(translate, -50.0, -50.0);
+	float rotate[6];
+	nsvg__xformSetRotation(rotate, angle);
+	float translateBack[6];
+	nsvg__xformSetTranslation(translateBack, 50.0, 50.0);
+
+	nsvg__xformMultiply(p->attr[0].xform, translate);
+	nsvg__xformMultiply(p->attr[0].xform, rotate);
+	nsvg__xformMultiply(p->attr[0].xform, translateBack);
+
 	memset(p->attr[0].id, 0, sizeof p->attr[0].id);
 	p->attr[0].fillColor = NSVG_RGB(0,0,0);
 	p->attr[0].strokeColor = NSVG_RGB(0,0,0);
@@ -2949,12 +2961,12 @@ static void nsvg__scaleToViewbox(NSVGparser* p, const char* units)
 	}
 }
 
-NSVGimage* nsvgParse(char* input, const char* units, float dpi)
+NSVGimage* nsvgParse(char* input, const char* units, float dpi, float angle)
 {
 	NSVGparser* p;
 	NSVGimage* ret = 0;
 
-	p = nsvg__createParser();
+	p = nsvg__createParser(angle);
 	if (p == NULL) {
 		return NULL;
 	}
@@ -2973,7 +2985,7 @@ NSVGimage* nsvgParse(char* input, const char* units, float dpi)
 	return ret;
 }
 
-NSVGimage* nsvgParseFromFile(const char* filename, const char* units, float dpi)
+NSVGimage* nsvgParseFromFile(const char* filename, const char* units, float dpi, float angle)
 {
 	FILE* fp = NULL;
 	size_t size;
@@ -2990,7 +3002,7 @@ NSVGimage* nsvgParseFromFile(const char* filename, const char* units, float dpi)
 	if (fread(data, 1, size, fp) != size) goto error;
 	data[size] = '\0';	// Must be null terminated.
 	fclose(fp);
-	image = nsvgParse(data, units, dpi);
+	image = nsvgParse(data, units, dpi, angle);
 	free(data);
 
 	return image;
