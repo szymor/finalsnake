@@ -18,7 +18,7 @@ SDL_Surface *snake_head = NULL;
 SDL_Surface *snake_body = NULL;
 
 static SDL_Surface *tiles_orig = NULL;
-static SDL_Surface *obstacle_surfaces[OBS_SPRSHEET_COUNT];
+static SDL_Surface *obstacle_surfaces[OBS_SHEETS_COUNT];
 
 static void rgb_to_hsv(double *rh, double *gs, double *bv);
 static void hsv_to_rgb(double *hr, double *sg, double *vb);
@@ -504,7 +504,7 @@ void parts_dispose(void)
 
 void obstacle_free_surfaces(void)
 {
-	for (int i = 0; i < OBS_SPRSHEET_COUNT; ++i)
+	for (int i = 0; i < OBS_SHEETS_COUNT; ++i)
 	{
 		if (obstacle_surfaces[i])
 		{
@@ -514,11 +514,10 @@ void obstacle_free_surfaces(void)
 	}
 }
 
-SDL_Surface *obstacle_get_surface(int radius, Uint32 color)
+SDL_Surface *obstacle_get_surface(int radius, Uint32 color, int style)
 {
 	if (NULL == obstacle_surfaces[radius])
 	{
-		int num = rand() % 6 + 1;
 		char path[64];
 		int ssize = radius * 2 + 4;
 		int cr = (color >> 24) & 0xff;
@@ -526,7 +525,7 @@ SDL_Surface *obstacle_get_surface(int radius, Uint32 color)
 		int cb = (color >> 8) & 0xff;
 		int ca = color & 0xff;
 
-		sprintf(path, GFX_DIR "saw%d.svg", num);
+		sprintf(path, GFX_DIR "saw%d.svg", style);
 		SDL_Surface *temp = SVG_LoadSizedSVG_RW(path, ssize, ssize,
 			cr, cg, cb, ca, 0);
 		obstacle_surfaces[radius] = SDL_DisplayFormatAlpha(temp);

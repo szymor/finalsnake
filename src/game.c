@@ -608,12 +608,12 @@ void obstacle_init(struct Obstacle *obstacle, double x, double y, double r)
 	obstacle->segment.r = r;
 }
 
-void obstacle_draw(const struct Obstacle *obstacle, Uint32 color)
+void obstacle_draw(const struct Obstacle *obstacle, Uint32 color, int style)
 {
 	double x = obstacle->segment.pos.x;
 	double y = obstacle->segment.pos.y;
 	camera_convert(&x, &y);
-	SDL_Surface *spritesheet = obstacle_get_surface(obstacle->segment.r, color);
+	SDL_Surface *spritesheet = obstacle_get_surface(obstacle->segment.r, color, style);
 	SDL_Rect dst;
 	dst.w = dst.h = spritesheet->h;
 	dst.x = x - dst.w / 2;
@@ -787,6 +787,7 @@ void room_init(struct Room *room)
 	food_recolor(hue);
 	parts_recolor(hue);
 	room->wall_color = get_wall_color(hue);
+	room->obstacle_style = rand() % OBS_STYLES_COUNT + 1;
 
 	for (int i = 0; i < room->consumables_num; ++i)
 	{
@@ -925,7 +926,7 @@ void room_draw(const struct Room *room)
 	}
 	for (int i = 0; i < room->obstacles_num; ++i)
 	{
-		obstacle_draw(&room->obstacles[i], room->wall_color);
+		obstacle_draw(&room->obstacles[i], room->wall_color, room->obstacle_style);
 	}
 	snake_draw(&room->snake);
 }

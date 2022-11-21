@@ -124,6 +124,7 @@ struct Room
 	struct Obstacle *obstacles;
 	int obstacles_num;
 	Uint32 wall_color;
+	int obstacle_style;
 };
 
 void fps_counter(double dt);
@@ -168,7 +169,7 @@ void wall_draw(const struct Wall *wall, Uint32 color);
 struct Vec2D* wall_dist(const struct Wall *wall, const struct Vec2D *pos);
 
 void obstacle_init(struct Obstacle *obstacle, double x, double y, double r);
-void obstacle_draw(const struct Obstacle *obstacle, Uint32 color);
+void obstacle_draw(const struct Obstacle *obstacle, Uint32 color, int style);
 
 void room_init(struct Room *room);
 void room_dispose(struct Room *room);

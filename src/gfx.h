@@ -11,7 +11,8 @@
 #define BILINEAR_FILTERING	(1)
 
 // radius of the obstacle cannot be equal or greater than this
-#define OBS_SPRSHEET_COUNT	(256)
+#define OBS_SHEETS_COUNT	(256)
+#define OBS_STYLES_COUNT	(6)
 
 // it MUST be with no parentheses
 #define CHECKERBOARD_SIZE				64
@@ -124,6 +125,6 @@ Uint32 get_wall_color(int hue);
 
 void obstacle_free_surfaces(void);
 // get and allocate/generate if needed
-SDL_Surface *obstacle_get_surface(int radius, Uint32 color);
+SDL_Surface *obstacle_get_surface(int radius, Uint32 color, int style);
 
 #endif
