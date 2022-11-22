@@ -17,8 +17,14 @@ SDL_Surface *veggies = NULL;
 SDL_Surface *snake_head = NULL;
 SDL_Surface *snake_body = NULL;
 
+// each obstacle size can have different number of frames
+int obstacle_framelimits[OBS_SHEETS_COUNT];
+
 static SDL_Surface *tiles_orig = NULL;
 static SDL_Surface *obstacle_surfaces[OBS_SHEETS_COUNT];
+static const int obstacle_gears_num[OBS_STYLES_COUNT] = {
+	4, 40, 12, 9, 24, 8
+};
 
 static void rgb_to_hsv(double *rh, double *gs, double *bv);
 static void hsv_to_rgb(double *hr, double *sg, double *vb);
@@ -524,12 +530,48 @@ SDL_Surface *obstacle_get_surface(int radius, Uint32 color, int style)
 		int cg = (color >> 16) & 0xff;
 		int cb = (color >> 8) & 0xff;
 		int ca = color & 0xff;
+		int gears = obstacle_gears_num[style - 1];
+		float angle_delta = 5 * M_PI / (OBS_FRAMERATE * gears);
 
-		sprintf(path, GFX_DIR "saw%d.svg", style);
-		SDL_Surface *temp = SVG_LoadSizedSVG_RW(path, ssize, ssize,
-			cr, cg, cb, ca, 0);
+		int frame_num = ceilf(2 * M_PI / (angle_delta * gears)) + 1;
+		SDL_Surface *temp = SDL_CreateRGBSurface(0,
+			ssize * frame_num, ssize, 32,
+			0xff, 0xff00, 0xff0000, 0xff000000);
 		obstacle_surfaces[radius] = SDL_DisplayFormatAlpha(temp);
 		SDL_FreeSurface(temp);
+		SDL_FillRect(obstacle_surfaces[radius], NULL, 0);
+
+		sprintf(path, GFX_DIR "saw%d.svg", style);
+
+		float angle = 0;
+		int i = 0;
+		for (angle = 0, i = 0; angle < (2 * M_PI / gears); angle += angle_delta, ++i)
+		{
+			SDL_Surface *temp2 = SVG_LoadSizedSVG_RW(path, ssize, ssize,
+				cr, cg, cb, ca, angle);
+			temp = SDL_DisplayFormatAlpha(temp2);
+			SDL_FreeSurface(temp2);
+
+			int bytes_num = obstacle_surfaces[radius]->pitch;
+			if (bytes_num > temp->pitch)
+				bytes_num = temp->pitch;
+			// funny thing, the heights below may be unequal
+			for (int y = 0; y < obstacle_surfaces[radius]->h && y < temp->h; ++y)
+			{
+				char *to = obstacle_surfaces[radius]->pixels;
+				char *from = temp->pixels;
+				int offset_to = y * obstacle_surfaces[radius]->pitch + (i * ssize * 4);
+				int offset_from = y * temp->pitch;
+				memcpy(to + offset_to, from + offset_from, bytes_num);
+			}
+			// I could not make the function below do simple copying
+			// SDL_BlitSurface(temp, NULL, obstacle_surfaces[radius], &dst);
+			SDL_FreeSurface(temp);
+		}
+
+		// number of generated frames
+		obstacle_framelimits[radius] = i;
+		//printf("r=%d, limit=%d, frames=%d\n", radius, i, frame_num);
 	}
 	return obstacle_surfaces[radius];
 }

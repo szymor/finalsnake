@@ -13,6 +13,7 @@
 // radius of the obstacle cannot be equal or greater than this
 #define OBS_SHEETS_COUNT	(256)
 #define OBS_STYLES_COUNT	(6)
+#define OBS_FRAMERATE		(60)
 
 // it MUST be with no parentheses
 #define CHECKERBOARD_SIZE				64
@@ -106,6 +107,8 @@ extern SDL_Surface *fruits;
 extern SDL_Surface *veggies;
 extern SDL_Surface *snake_head;
 extern SDL_Surface *snake_body;
+
+extern int obstacle_framelimits[];
 
 void tiles_init(void);
 void tiles_prepare(int suit, int hue);

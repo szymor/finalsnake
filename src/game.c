@@ -608,17 +608,20 @@ void obstacle_init(struct Obstacle *obstacle, double x, double y, double r)
 	obstacle->segment.r = r;
 }
 
-void obstacle_draw(const struct Obstacle *obstacle, Uint32 color, int style)
+void obstacle_draw(const struct Obstacle *obstacle, const struct Room *room)
 {
 	double x = obstacle->segment.pos.x;
 	double y = obstacle->segment.pos.y;
 	camera_convert(&x, &y);
-	SDL_Surface *spritesheet = obstacle_get_surface(obstacle->segment.r, color, style);
-	SDL_Rect dst;
-	dst.w = dst.h = spritesheet->h;
+	SDL_Surface *spritesheet = obstacle_get_surface(obstacle->segment.r,
+		room->wall_color, room->obstacle_style);
+	SDL_Rect src, dst;
+	src.x = room->obstacle_frame[(int)obstacle->segment.r] * spritesheet->h;
+	src.y = 0;
+	dst.w = dst.h = src.w = src.h = spritesheet->h;
 	dst.x = x - dst.w / 2;
 	dst.y = y - dst.h / 2;
-	SDL_BlitSurface(spritesheet, NULL, screen, &dst);
+	SDL_BlitSurface(spritesheet, &src, screen, &dst);
 }
 
 void room_init(struct Room *room)
@@ -789,6 +792,11 @@ void room_init(struct Room *room)
 	room->wall_color = get_wall_color(hue);
 	room->obstacle_style = rand() % OBS_STYLES_COUNT + 1;
 
+	for (int i = 0; i < OBS_SHEETS_COUNT; ++i)
+	{
+		room->obstacle_frame[i] = 0;
+	}
+
 	for (int i = 0; i < room->consumables_num; ++i)
 	{
 		// needs to be done after wall init
@@ -821,6 +829,13 @@ void room_dispose(struct Room *room)
 
 void room_process(struct Room *room, double dt)
 {
+	for (int i = 0; i < OBS_SHEETS_COUNT; ++i)
+	{
+		++room->obstacle_frame[i];
+		if (room->obstacle_frame[i] >= obstacle_framelimits[i])
+			room->obstacle_frame[i] = 0;
+	}
+
 	snake_control(&room->snake);
 
 	for (int i = 0; i < room->consumables_num; ++i)
@@ -926,7 +941,7 @@ void room_draw(const struct Room *room)
 	}
 	for (int i = 0; i < room->obstacles_num; ++i)
 	{
-		obstacle_draw(&room->obstacles[i], room->wall_color, room->obstacle_style);
+		obstacle_draw(&room->obstacles[i], room);
 	}
 	snake_draw(&room->snake);
 }
