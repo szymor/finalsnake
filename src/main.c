@@ -218,6 +218,15 @@ void gs_game_process(void)
 	struct Room room;
 	room_init(&room);
 
+	// loading screen
+	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0, 0, 0));
+	const char loading_text[] = "LOADING...";
+	stringRGBA(screen, (SCREEN_WIDTH - 8 * strlen(loading_text)) / 2,
+		(SCREEN_HEIGHT - 8) / 2, loading_text, 255, 255, 255, 255);
+	SDL_Flip(screen);
+
+	room_draw(&room);	// workaround for SVG prerendering phase
+
 	SDL_Event event;
 	bool leave = false;
 	Uint32 prevtime = SDL_GetTicks();
