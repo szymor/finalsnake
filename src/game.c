@@ -270,19 +270,21 @@ bool generate_safe_position(
 		switch(room->cg_mode)
 		{
 			case CGM_CARTESIAN:
+			{
 				pos->x = rand() % (x_to - x_from) + x_from;
 				pos->y = rand() % (y_to - y_from) + y_from;
 				pos->x = round(pos->x);
 				pos->y = round(pos->y);
-				break;
+			} break;
 			case CGM_POLAR:
+			{
 				double r = rand() % (int) room->cg_polar.radius;
 				double fi = 2 * M_PI * (rand() % 1024) / 1024;
 				pos->x = r * cos(fi);
 				pos->y = r * sin(fi);
 				pos->x = round(pos->x);
 				pos->y = round(pos->y);
-				break;
+			} break;
 		}
 		if (snake)
 		{
@@ -857,11 +859,14 @@ void room_draw(const struct Room *room)
 	switch (camera.cm)
 	{
 		case CM_TRACKING:
+		{
 			ox = (int)(camera.center->x - SCREEN_WIDTH / 2) % (CHECKERBOARD_SIZE * 2);
 			if (ox < 0) ox = (CHECKERBOARD_SIZE * 2) + ox;
 			oy = (int)(camera.center->y - SCREEN_HEIGHT / 2) % (CHECKERBOARD_SIZE * 2);
 			if (oy < 0) oy = (CHECKERBOARD_SIZE * 2) + oy;
+		} // fallthrough
 		case CM_FIXED:
+		{
 			const int bpp = screen->format->BytesPerPixel;
 			SDL_LockSurface(screen);
 			for (int y = 0; y < SCREEN_HEIGHT; ++y)
@@ -884,7 +889,7 @@ void room_draw(const struct Room *room)
 				ox = fox;
 			}
 			SDL_UnlockSurface(screen);
-			break;
+		} break;
 		case CM_TPP:
 		case CM_TPP_DELAYED:
 		{
