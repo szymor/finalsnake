@@ -52,7 +52,7 @@ enum MenuOptions
 
 extern int menu_options[];
 extern SDL_Surface *screen;
-extern enum GameState gamestate;
+extern int gamestate;
 
 extern Mix_Chunk *sfx_crunch;
 

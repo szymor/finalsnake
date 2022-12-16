@@ -11,7 +11,7 @@ ifneq ($(.SHELLSTATUS),0)
 COMMIT_HASH := $(COMMIT_HASH)-dirty
 endif
 
-CFLAGS = $(shell pkg-config --cflags $(PKGS)) -DCOMMIT_HASH=$(COMMIT_HASH)
+CFLAGS = -Werror --pedantic $(shell pkg-config --cflags $(PKGS)) -DCOMMIT_HASH=$(COMMIT_HASH)
 LDFLAGS = $(shell pkg-config --libs $(PKGS)) -lm
 
 all: $(TARGET)

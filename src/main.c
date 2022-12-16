@@ -22,7 +22,7 @@ enum GameState
 };
 
 SDL_Surface *screen = NULL;
-enum GameState gamestate = GS_MENU;
+int gamestate = GS_MENU;
 Mix_Chunk *sfx_crunch = NULL;
 
 int menu_options[MO_NUM];
