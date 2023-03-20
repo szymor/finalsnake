@@ -68,6 +68,9 @@ struct Snake
 	int len;
 	struct Vec2D pieces[MAX_SNAKE_LEN];
 	enum Turn turn;
+	bool ghost;
+	bool uroboros;
+	bool onix;
 };
 
 struct Consumable
@@ -82,6 +85,7 @@ struct Consumable
 struct Obstacle
 {
 	struct Segment segment;
+	bool valid;
 };
 
 struct Wall
@@ -156,10 +160,11 @@ void snake_process(struct Snake *snake, double dt);
 void snake_draw(const struct Snake *snake);
 void snake_control(struct Snake *snake);
 void snake_add_segments(struct Snake *snake, int count);
+void snake_remove_segments(struct Snake *snake, int count);
 void snake_eat_consumables(struct Snake *snake, struct Room *room);
-bool snake_check_selfcollision(const struct Snake *snake);
+bool snake_check_selfcollision(struct Snake *snake);
 bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], int wallnum);
-bool snake_check_obstaclecollision(const struct Snake *snake, struct Obstacle obs[], int obnum);
+bool snake_check_obstaclecollision(struct Snake *snake, struct Obstacle obs[], int obnum);
 
 void consumable_generate(struct Consumable *col, const struct Room *room);
 void consumable_process(struct Consumable *col, double dt);
@@ -176,6 +181,6 @@ void room_init(struct Room *room);
 void room_dispose(struct Room *room);
 void room_process(struct Room *room, double dt);
 void room_draw(const struct Room *room);
-bool room_check_gameover(const struct Room *room);
+bool room_check_gameover(struct Room *room);
 
 #endif

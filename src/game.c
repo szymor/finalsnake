@@ -80,6 +80,9 @@ void snake_init(struct Snake *snake)
 			snake->wobbly_freq = 0.8;
 			break;
 	}
+	snake->ghost = false;
+	snake->uroboros = false;
+	snake->onix = false;
 }
 
 void snake_process(struct Snake *snake, double dt)
@@ -198,6 +201,15 @@ void snake_add_segments(struct Snake *snake, int count)
 	}
 }
 
+void snake_remove_segments(struct Snake *snake, int count)
+{
+	snake->len -= count;
+	if (snake->len < START_LEN)
+	{
+		snake->len = START_LEN;
+	}
+}
+
 void snake_eat_consumables(struct Snake *snake, struct Room *room)
 {
 	for (int i = 0; i < room->consumables_num; ++i)
@@ -213,15 +225,28 @@ void snake_eat_consumables(struct Snake *snake, struct Room *room)
 	}
 }
 
-bool snake_check_selfcollision(const struct Snake *snake)
+bool snake_check_selfcollision(struct Snake *snake)
 {
-	for (int i = START_LEN + 1; i < snake->len; ++i)
+	if (snake->ghost)
+		return false;
+
+	//for (int i = START_LEN + 1; i < snake->len; ++i)
+	for (int i = snake->len - 1; i > START_LEN + 1; i -= PIECE_DRAW_INCREMENT)
 	{
 		struct Vec2D diff = snake->pieces[0];
 		vsub(&diff, &snake->pieces[i]);
 		if (vlen(&diff) < (HEAD_RADIUS + BODY_RADIUS))
 		{
-			return true;
+			if (snake->uroboros)
+			{
+				Mix_PlayChannel(-1, sfx_crunch, 0);
+				snake_remove_segments(snake, snake->len - i + 1);
+				return false;
+			}
+			else
+			{
+				return true;
+			}
 		}
 	}
 	return false;
@@ -229,6 +254,9 @@ bool snake_check_selfcollision(const struct Snake *snake)
 
 bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], int wallnum)
 {
+	if (snake->ghost)
+		return false;
+
 	for (int i = 0; i < wallnum; ++i)
 	{
 		struct Vec2D *vector_distance = wall_dist(&walls[i], &snake->pieces[0]);
@@ -240,15 +268,31 @@ bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], i
 	return false;
 }
 
-bool snake_check_obstaclecollision(const struct Snake *snake, struct Obstacle obs[], int obnum)
+bool snake_check_obstaclecollision(struct Snake *snake, struct Obstacle obs[], int obnum)
 {
+	if (snake->ghost)
+		return false;
+
 	for (int i = 0; i < obnum; ++i)
 	{
+		if (!obs[i].valid)
+			continue;
 		struct Vec2D diff = snake->pieces[0];
 		vsub(&diff, &obs[i].segment.pos);
 		if (vlen(&diff) < (HEAD_RADIUS + obs[i].segment.r))
 		{
-			return true;
+			if (snake->onix)
+			{
+				int meal = (obs[i].segment.r / (int)CONSUMABLE_RADIUS) * PIECE_DRAW_INCREMENT;
+				Mix_PlayChannel(-1, sfx_crunch, 0);
+				snake_add_segments(snake, meal);
+				obs[i].valid = false;
+				return false;
+			}
+			else
+			{
+				return true;
+			}
 		}
 	}
 	return false;
@@ -608,10 +652,13 @@ void obstacle_init(struct Obstacle *obstacle, double x, double y, double r)
 {
 	obstacle->segment.pos = (struct Vec2D){ .x = round(x), .y = round(y) };
 	obstacle->segment.r = r;
+	obstacle->valid = true;
 }
 
 void obstacle_draw(const struct Obstacle *obstacle, const struct Room *room)
 {
+	if (!obstacle->valid)
+		return;
 	double x = obstacle->segment.pos.x;
 	double y = obstacle->segment.pos.y;
 	camera_convert(&x, &y);
@@ -661,8 +708,9 @@ void room_init(struct Room *room)
 			room->obstacles = (struct Obstacle *)malloc(room->obstacles_num * sizeof(struct Obstacle));
 			for (int i = 0; i < room->obstacles_num; ++i)
 			{
-				if (!generate_safe_position(room, &pos,
-					48, 100, true, false, true))
+				bool valid = generate_safe_position(room, &pos,
+					48, 100, true, false, true);
+				if (!valid)
 				{
 					/* out of the game field
 					 * we cannot break the loop because
@@ -673,6 +721,7 @@ void room_init(struct Room *room)
 				}
 				obstacle_init(&room->obstacles[i], pos.x, pos.y,
 					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
+				room->obstacles[i].valid = valid;
 			}
 		} break;
 		case LT_POLYGON:
@@ -951,7 +1000,7 @@ void room_draw(const struct Room *room)
 	snake_draw(&room->snake);
 }
 
-bool room_check_gameover(const struct Room *room)
+bool room_check_gameover(struct Room *room)
 {
 	return snake_check_selfcollision(&room->snake) ||
 		snake_check_wallcollision(&room->snake, room->walls, room->walls_num) ||
