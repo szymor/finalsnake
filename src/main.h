@@ -127,7 +127,8 @@ enum Food
 	VEGE_YELLOW_BELLPEPPER,
 	VEGE_CARROT,
 	VEGE_EGGPLANT,
-	VEGE_END
+	VEGE_END,
+	FOOD_END = VEGE_END
 };
 
 extern int menu_options[];

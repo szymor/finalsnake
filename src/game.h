@@ -15,6 +15,12 @@
 #define EAT_DEPTH						(2.0)
 #define SNAKE_V_MULTIPLIER				(2.0)
 #define SNAKE_W_MULTIPLIER				(1.5)
+#define SNAKE_STARTING_VELOCITY			(40.0)
+#define SNAKE_STARTING_ANGLE_V			(M_PI)
+#define SNAKE_MAX_VELOCITY				(120.0)
+#define SNAKE_MAX_ANGLE_V				(M_PI * 1.83)
+#define SNAKE_BASE_V_MULTIPLIER			(1.19)
+#define SNAKE_BASE_W_MULTIPLIER			(1.10)
 
 #define SDL_CHECK(x) if (x) { printf("SDL: %s\n", SDL_GetError()); exit(0); }
 #define SDLGFX_COLOR(r, g, b) (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff)
@@ -162,6 +168,7 @@ void snake_control(struct Snake *snake);
 void snake_add_segments(struct Snake *snake, int count);
 void snake_remove_segments(struct Snake *snake, int count);
 void snake_eat_consumables(struct Snake *snake, struct Room *room);
+static void snake_apply_effects(struct Snake *snake, enum Food food);
 bool snake_check_selfcollision(struct Snake *snake);
 bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], int wallnum);
 bool snake_check_obstaclecollision(struct Snake *snake, struct Obstacle obs[], int obnum);

@@ -18,8 +18,8 @@ fig,+1 grow,,fruit
 grapes,+1 grow,,fruit
 green apple,+2 grow,,fruit
 honeydew,+2 grow,,fruit
-lemon,-3 speed,,fruit
-lime,-3 speed,,fruit
+lemon,-1 speed,,fruit
+lime,-1 speed,,fruit
 lychee,+1 grow,,fruit
 mango,+2 grow,,fruit
 metalberry,n/a,"fantasy, evolves from oreberry",fruit
@@ -65,8 +65,8 @@ red beans,+1 grow,,vegetable
 red bellpepper,+1 grow,,vegetable
 rhubarb,+1 grow,,vegetable
 shroom1,-10 grow,kills if the snake is too short,vegetable
-shroom2,+1 wobble,,vegetable
-shroom3,"+5 grow, -5 speed",,vegetable
+shroom2,wobble on,,vegetable
+shroom3,"+5 grow, -2 speed",,vegetable
 spinach,null,,vegetable
 turnip,null,,vegetable
 yam,+2 grow,,vegetable

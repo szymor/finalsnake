@@ -13,6 +13,23 @@ enum Region
 
 int fps = 0;
 
+static int food_grow_table[FOOD_END] = {
+	[FRUIT_START] =
+	1, 2, 1, 2, 2, 1,
+	1, 2, 2, 1, 0, 3,
+	1, 0, 3, 1, 1, 2,
+	2, 0, 0, 1, 2, 0,
+	2, 0, 0, 2, 2, 3,
+	2, 1, 0, 1, 1, 3,
+	[VEGE_START] =
+	1, 2, 1, 2, 1, 2,
+	0, 2, 0, 0, 0, 0,
+	1, 0, 1, 0, 0, 0,
+	1, 1, 0, 2, 3, 1,
+	1, 1, 1, -10, 0, 5,
+	0, 0, 2, 1, 1, 1
+};
+
 struct Camera camera = {
 	.cm = CM_FIXED,
 	.center = NULL,
@@ -60,8 +77,8 @@ double vdist(const struct Vec2D *vec1, const struct Vec2D *vec2)
 
 void snake_init(struct Snake *snake)
 {
-	snake->base_v = 40.0;
-	snake->base_w = M_PI;
+	snake->base_v = SNAKE_STARTING_VELOCITY;
+	snake->base_w = SNAKE_STARTING_ANGLE_V;
 	snake->dir = 0.0;
 	snake->len = 1;
 	snake->pieces[0] = (struct Vec2D) {
@@ -206,7 +223,8 @@ void snake_remove_segments(struct Snake *snake, int count)
 	snake->len -= count;
 	if (snake->len < START_LEN)
 	{
-		snake->len = START_LEN;
+		// snake length < starting length -> game over
+		snake->len = START_LEN - 1;
 	}
 }
 
@@ -219,15 +237,95 @@ void snake_eat_consumables(struct Snake *snake, struct Room *room)
 		if (vlen(&diff) < (HEAD_RADIUS + room->consumables[i].segment.r - EAT_DEPTH))
 		{
 			Mix_PlayChannel(-1, sfx_crunch, 0);
-			snake_add_segments(snake, PIECE_DRAW_INCREMENT);
+			snake_apply_effects(snake, room->consumables[i].type);
 			consumable_generate(&room->consumables[i], room);
+		}
+	}
+}
+
+static void snake_apply_effects(struct Snake *snake, enum Food food)
+{
+	int grow = food_grow_table[food];
+	if (grow >= 0)
+		snake_add_segments(snake, grow * PIECE_DRAW_INCREMENT);
+	else
+		snake_remove_segments(snake, -grow * PIECE_DRAW_INCREMENT);
+
+	// speed, wobble, special effects
+	int speed = 0;
+	switch (food)
+	{
+		case FRUIT_LEMON:
+		case FRUIT_LIME:
+			speed = -1;
+			break;
+		case VEGE_CAYENNE:
+			speed = 2;
+			break;
+		case VEGE_HABANERO:
+			speed = 3;
+			break;
+		case VEGE_JALAPENO:
+			speed = 1;
+			break;
+		case VEGE_PIXIE_BEANS:
+			snake->base_v = SNAKE_STARTING_VELOCITY;
+			snake->v = snake->base_v;
+			snake->base_w = SNAKE_STARTING_ANGLE_V;
+			snake->w = snake->base_w;
+			snake->wobbly_freq = 0;
+			snake->wobbly_phase = 0;
+			break;
+		case VEGE_SHROOM2:
+			snake->wobbly_freq = 0.8 * (rand() % 3 + 1);
+			break;
+		case VEGE_SHROOM3:
+			speed = -2;
+			break;
+		case VEGE_DEVILS_LETTUCE:
+			snake->onix = true;
+			break;
+		case VEGE_GHOST_PEPPER:
+			snake->ghost = true;
+			break;
+		case VEGE_GOLD_MUSHROOM:
+			snake->uroboros = true;
+			break;
+		default:
+			speed = 0;
+	}
+
+	if (speed > 0)
+	{
+		while (speed-- > 0)
+		{
+			snake->base_v *= SNAKE_BASE_V_MULTIPLIER;
+			snake->base_w *= SNAKE_BASE_W_MULTIPLIER;
+		}
+		if (snake->base_v > SNAKE_MAX_VELOCITY)
+		{
+			snake->base_v = SNAKE_MAX_VELOCITY;
+			snake->base_w = SNAKE_MAX_ANGLE_V;
+		}
+	}
+	else if (speed < 0)
+	{
+		while (speed++ < 0)
+		{
+			snake->base_v /= SNAKE_BASE_V_MULTIPLIER;
+			snake->base_w /= SNAKE_BASE_W_MULTIPLIER;
+		}
+		if (snake->base_v < SNAKE_STARTING_VELOCITY)
+		{
+			snake->base_v = SNAKE_STARTING_VELOCITY;
+			snake->base_w = SNAKE_STARTING_ANGLE_V;
 		}
 	}
 }
 
 bool snake_check_selfcollision(struct Snake *snake)
 {
-	if (snake->ghost)
+	if (snake->ghost && !snake->uroboros)
 		return false;
 
 	//for (int i = START_LEN + 1; i < snake->len; ++i)
@@ -270,7 +368,7 @@ bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], i
 
 bool snake_check_obstaclecollision(struct Snake *snake, struct Obstacle obs[], int obnum)
 {
-	if (snake->ghost)
+	if (snake->ghost && !snake->onix)
 		return false;
 
 	for (int i = 0; i < obnum; ++i)
@@ -1004,5 +1102,6 @@ bool room_check_gameover(struct Room *room)
 {
 	return snake_check_selfcollision(&room->snake) ||
 		snake_check_wallcollision(&room->snake, room->walls, room->walls_num) ||
-		snake_check_obstaclecollision(&room->snake, room->obstacles, room->obstacles_num);
+		snake_check_obstaclecollision(&room->snake, room->obstacles, room->obstacles_num) ||
+		(room->snake.len < START_LEN);
 }
