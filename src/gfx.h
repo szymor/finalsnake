@@ -26,8 +26,8 @@
 extern SDL_Surface *tiles;
 extern SDL_Surface *fruits;
 extern SDL_Surface *veggies;
-extern SDL_Surface *snake_head;
-extern SDL_Surface *snake_body;
+extern SDL_Surface *snake_head[];
+extern SDL_Surface *snake_body[];
 
 extern int obstacle_framelimits[];
 

@@ -27,6 +27,15 @@
 #define KEY_START						SDLK_RETURN
 #define KEY_QUIT						SDLK_ESCAPE
 
+enum SkillType
+{
+	SKILL_NONE,
+	SKILL_GHOST,
+	SKILL_ONIX,
+	SKILL_UROBOROS,
+	SKILL_END
+};
+
 enum SoundType
 {
 	ST_NONE,

@@ -97,9 +97,7 @@ void snake_init(struct Snake *snake)
 			snake->wobbly_freq = 0.8;
 			break;
 	}
-	snake->ghost = false;
-	snake->uroboros = false;
-	snake->onix = false;
+	snake->skill = SKILL_NONE;
 }
 
 void snake_process(struct Snake *snake, double dt)
@@ -157,7 +155,7 @@ void snake_draw(const struct Snake *snake)
 		camera_convert(&x, &y);
 		dst.x = x - SNAKE_PART_SIZE / 2;
 		dst.y = y - SNAKE_PART_SIZE / 2;
-		SDL_BlitSurface(snake_body, NULL, screen, &dst);
+		SDL_BlitSurface(snake_body[snake->skill], NULL, screen, &dst);
 	}
 
 	// head
@@ -174,7 +172,7 @@ void snake_draw(const struct Snake *snake)
 		head_sprite_no %= ROT_ANGLE_COUNT;
 	SDL_Rect src = {.x = head_sprite_no * SNAKE_PART_SIZE, .y = 0,
 		.w = SNAKE_PART_SIZE, .h = SNAKE_PART_SIZE};
-	SDL_BlitSurface(snake_head, &src, screen, &dst);
+	SDL_BlitSurface(snake_head[snake->skill], &src, screen, &dst);
 }
 
 void snake_control(struct Snake *snake)
@@ -290,15 +288,15 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			break;
 		case VEGE_DEVILS_LETTUCE:
 			sound = ST_ONIX;
-			snake->onix = true;
+			snake->skill = SKILL_ONIX;
 			break;
 		case VEGE_GHOST_PEPPER:
 			sound = ST_GHOST;
-			snake->ghost = true;
+			snake->skill = SKILL_GHOST;
 			break;
 		case VEGE_GOLD_MUSHROOM:
 			sound = ST_BITE;
-			snake->uroboros = true;
+			snake->skill = SKILL_UROBOROS;
 			break;
 		default:
 			speed = 0;
@@ -336,7 +334,7 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 
 bool snake_check_selfcollision(struct Snake *snake)
 {
-	if (snake->ghost && !snake->uroboros)
+	if (SKILL_GHOST == snake->skill)
 		return false;
 
 	//for (int i = START_LEN + 1; i < snake->len; ++i)
@@ -346,10 +344,12 @@ bool snake_check_selfcollision(struct Snake *snake)
 		vsub(&diff, &snake->pieces[i]);
 		if (vlen(&diff) < (HEAD_RADIUS + BODY_RADIUS))
 		{
-			if (snake->uroboros)
+			if (SKILL_UROBOROS == snake->skill)
 			{
-				sound_play(ST_BITE);
-				snake_remove_segments(snake, snake->len - i + 1);
+				int seg_num = snake->len - i + 1;
+				if (seg_num >= PIECE_DRAW_INCREMENT)
+					sound_play(ST_BITE);
+				snake_remove_segments(snake, seg_num);
 				return false;
 			}
 			else
@@ -363,7 +363,7 @@ bool snake_check_selfcollision(struct Snake *snake)
 
 bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], int wallnum)
 {
-	if (snake->ghost)
+	if (SKILL_GHOST == snake->skill)
 		return false;
 
 	for (int i = 0; i < wallnum; ++i)
@@ -379,7 +379,7 @@ bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], i
 
 bool snake_check_obstaclecollision(struct Snake *snake, struct Obstacle obs[], int obnum)
 {
-	if (snake->ghost && !snake->onix)
+	if (SKILL_GHOST == snake->skill)
 		return false;
 
 	for (int i = 0; i < obnum; ++i)
@@ -390,7 +390,7 @@ bool snake_check_obstaclecollision(struct Snake *snake, struct Obstacle obs[], i
 		vsub(&diff, &obs[i].segment.pos);
 		if (vlen(&diff) < (HEAD_RADIUS + obs[i].segment.r))
 		{
-			if (snake->onix)
+			if (SKILL_ONIX == snake->skill)
 			{
 				int meal = (obs[i].segment.r / (int)CONSUMABLE_RADIUS) * PIECE_DRAW_INCREMENT;
 				sound_play(ST_ONIX);

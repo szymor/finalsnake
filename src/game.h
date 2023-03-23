@@ -74,9 +74,7 @@ struct Snake
 	int len;
 	struct Vec2D pieces[MAX_SNAKE_LEN];
 	enum Turn turn;
-	bool ghost;
-	bool uroboros;
-	bool onix;
+	enum SkillType skill;
 };
 
 struct Consumable

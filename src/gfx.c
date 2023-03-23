@@ -14,8 +14,8 @@
 SDL_Surface *tiles = NULL;
 SDL_Surface *fruits = NULL;
 SDL_Surface *veggies = NULL;
-SDL_Surface *snake_head = NULL;
-SDL_Surface *snake_body = NULL;
+SDL_Surface *snake_head[SKILL_END] = { NULL };
+SDL_Surface *snake_body[SKILL_END] = { NULL };
 
 // each obstacle size can have different number of frames
 int obstacle_framelimits[OBS_SHEETS_COUNT];
@@ -380,26 +380,17 @@ static Uint8 mix_color_channel(const Uint8 color[4], const double frac[4])
 	return (Uint8)result;
 }
 
-void parts_init(void)
+static void parts_generate_rotated(SDL_Surface **orig)
 {
-	SDL_Surface *tmp = IMG_Load(GFX_DIR "snake-head.png");
-	snake_head = SDL_DisplayFormatAlpha(tmp);
-	SDL_FreeSurface(tmp);
-
-	tmp = IMG_Load(GFX_DIR "snake-body.png");
-	snake_body = SDL_DisplayFormatAlpha(tmp);
-	SDL_FreeSurface(tmp);
-
-	// generate rotated sprites for the head
-	tmp = snake_head;
-	snake_head = SDL_CreateRGBSurface(0,
+	SDL_Surface *tmp = *orig;
+	*orig = SDL_CreateRGBSurface(0,
 		SNAKE_PART_SIZE * ROT_ANGLE_COUNT, SNAKE_PART_SIZE,
 		tmp->format->BitsPerPixel,
 		tmp->format->Rmask,
 		tmp->format->Gmask,
 		tmp->format->Bmask,
 		tmp->format->Amask);
-	SDL_LockSurface(snake_head);
+	SDL_LockSurface(*orig);
 	for (int i = 0; i < ROT_ANGLE_COUNT; ++i)
 	{
 		double angle = i * 2 * M_PI / ROT_ANGLE_COUNT;
@@ -410,7 +401,7 @@ void parts_init(void)
 			for (int x = 0; x < SNAKE_PART_SIZE; ++x)
 			{
 #if BILINEAR_FILTERING
-				Uint32 *p = (Uint32 *)((Uint8 *)snake_head->pixels + y * snake_head->pitch + (x + offset) * snake_head->format->BytesPerPixel);
+				Uint32 *p = (Uint32 *)((Uint8 *)(*orig)->pixels + y * (*orig)->pitch + (x + offset) * (*orig)->format->BytesPerPixel);
 				int ox = x - SNAKE_PART_SIZE / 2;
 				int oy = y - SNAKE_PART_SIZE / 2;
 				double tx = ox * cosa + oy * sina;
@@ -459,7 +450,7 @@ void parts_init(void)
 					*p = 0;
 				}
 #else
-				Uint32 *p = (Uint32 *)((Uint8 *)snake_head->pixels + y * snake_head->pitch + (x + offset) * snake_head->format->BytesPerPixel);
+				Uint32 *p = (Uint32 *)((Uint8 *)(*orig)->pixels + y * (*orig)->pitch + (x + offset) * (*orig)->format->BytesPerPixel);
 				int ox = x - SNAKE_PART_SIZE / 2;
 				int oy = y - SNAKE_PART_SIZE / 2;
 				double tx = ox * cosa + oy * sina;
@@ -480,9 +471,43 @@ void parts_init(void)
 #endif
 			}
 	}
-	SDL_UnlockSurface(snake_head);
+	SDL_UnlockSurface(*orig);
 
 	SDL_FreeSurface(tmp);
+}
+
+void parts_init(void)
+{
+	SDL_Surface *tmp = IMG_Load(GFX_DIR "snake-head.png");
+	snake_head[SKILL_NONE] = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+	tmp = IMG_Load(GFX_DIR "snake-head-ghost.png");
+	snake_head[SKILL_GHOST] = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+	tmp = IMG_Load(GFX_DIR "snake-head-onix.png");
+	snake_head[SKILL_ONIX] = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+	tmp = IMG_Load(GFX_DIR "snake-head-uroboros.png");
+	snake_head[SKILL_UROBOROS] = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+
+	tmp = IMG_Load(GFX_DIR "snake-body.png");
+	snake_body[SKILL_NONE] = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+	tmp = IMG_Load(GFX_DIR "snake-body-ghost.png");
+	snake_body[SKILL_GHOST] = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+	tmp = IMG_Load(GFX_DIR "snake-body-onix.png");
+	snake_body[SKILL_ONIX] = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+	tmp = IMG_Load(GFX_DIR "snake-body-uroboros.png");
+	snake_body[SKILL_UROBOROS] = SDL_DisplayFormatAlpha(tmp);
+	SDL_FreeSurface(tmp);
+
+	for (int i = SKILL_NONE; i < SKILL_END; ++i)
+	{
+		parts_generate_rotated(&snake_head[i]);
+	}
 }
 
 // it does not need init before as a side effect
@@ -490,21 +515,27 @@ void parts_recolor(int hue)
 {
 	parts_dispose();
 	parts_init();
-	surface_recolor(snake_head, hue);
-	surface_recolor(snake_body, hue);
+	for (int i = SKILL_NONE; i < SKILL_END; ++i)
+	{
+		surface_recolor(snake_head[i], hue);
+		surface_recolor(snake_body[i], hue);
+	}
 }
 
 void parts_dispose(void)
 {
-	if (snake_head)
+	for (int i = SKILL_NONE; i < SKILL_END; ++i)
 	{
-		SDL_FreeSurface(snake_head);
-		snake_head = NULL;
-	}
-	if (snake_body)
-	{
-		SDL_FreeSurface(snake_body);
-		snake_body = NULL;
+		if (snake_head[i])
+		{
+			SDL_FreeSurface(snake_head[i]);
+			snake_head[i] = NULL;
+		}
+		if (snake_body[i])
+		{
+			SDL_FreeSurface(snake_body[i]);
+			snake_body[i] = NULL;
+		}
 	}
 }
 
