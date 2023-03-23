@@ -5,6 +5,7 @@ As the name suggests, it is yet another implementation of a popular Snake game. 
 
 ## contribution
 - crunch sound by Borgory from [Freesound](https://freesound.org/),
+- bite, ghost, harm and onix sounds from [The Battle for Wesnoth](http://www.wesnoth.org/),
 - circular saw blades from [Vecteezy](https://www.vecteezy.com/),
 - fruits and veggies by [Mr. Milkduds](https://mrmilkduds.itch.io/).
 

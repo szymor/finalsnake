@@ -27,6 +27,17 @@
 #define KEY_START						SDLK_RETURN
 #define KEY_QUIT						SDLK_ESCAPE
 
+enum SoundType
+{
+	ST_NONE,
+	ST_CRUNCH,
+	ST_BITE,
+	ST_GHOST,
+	ST_HARM,
+	ST_ONIX,
+	ST_END
+};
+
 enum LevelType
 {
 	LT_CAGE,
@@ -134,7 +145,6 @@ enum Food
 extern int menu_options[];
 extern SDL_Surface *screen;
 extern int gamestate;
-
-extern Mix_Chunk *sfx_crunch;
+extern Mix_Chunk *sfx_chunks[];
 
 #endif

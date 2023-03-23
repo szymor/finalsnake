@@ -23,7 +23,7 @@ enum GameState
 
 SDL_Surface *screen = NULL;
 int gamestate = GS_MENU;
-Mix_Chunk *sfx_crunch = NULL;
+Mix_Chunk *sfx_chunks[ST_END] = { NULL };
 
 int menu_options[MO_NUM];
 int menu_options_num[MO_NUM] = {LT_NUM, W_NUM};
@@ -75,11 +75,32 @@ int main(int argc, char *argv[])
 		printf("Mix_OpenAudio: %s\n", Mix_GetError());
 		exit(0);
 	}
-	sfx_crunch = Mix_LoadWAV(SFX_DIR "crunch.wav");
-	if (!sfx_crunch)
+
+	// the errors are not critical, so let them pass
+	sfx_chunks[ST_CRUNCH] = Mix_LoadWAV(SFX_DIR "crunch.wav");
+	if (!sfx_chunks[ST_CRUNCH])
 	{
 		printf("Mix_LoadWAV: %s\n", Mix_GetError());
-		// it is not a critical error, so let it pass
+	}
+	sfx_chunks[ST_BITE] = Mix_LoadWAV(SFX_DIR "bite.wav");
+	if (!sfx_chunks[ST_BITE])
+	{
+		printf("Mix_LoadWAV: %s\n", Mix_GetError());
+	}
+	sfx_chunks[ST_GHOST] = Mix_LoadWAV(SFX_DIR "ghost.wav");
+	if (!sfx_chunks[ST_GHOST])
+	{
+		printf("Mix_LoadWAV: %s\n", Mix_GetError());
+	}
+	sfx_chunks[ST_HARM] = Mix_LoadWAV(SFX_DIR "harm.wav");
+	if (!sfx_chunks[ST_HARM])
+	{
+		printf("Mix_LoadWAV: %s\n", Mix_GetError());
+	}
+	sfx_chunks[ST_ONIX] = Mix_LoadWAV(SFX_DIR "onix.wav");
+	if (!sfx_chunks[ST_ONIX])
+	{
+		printf("Mix_LoadWAV: %s\n", Mix_GetError());
 	}
 
 	tiles_init();

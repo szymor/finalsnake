@@ -236,7 +236,6 @@ void snake_eat_consumables(struct Snake *snake, struct Room *room)
 		vsub(&diff, &room->consumables[i].segment.pos);
 		if (vlen(&diff) < (HEAD_RADIUS + room->consumables[i].segment.r - EAT_DEPTH))
 		{
-			Mix_PlayChannel(-1, sfx_crunch, 0);
 			snake_apply_effects(snake, room->consumables[i].type);
 			consumable_generate(&room->consumables[i], room);
 		}
@@ -245,11 +244,18 @@ void snake_eat_consumables(struct Snake *snake, struct Room *room)
 
 static void snake_apply_effects(struct Snake *snake, enum Food food)
 {
+	enum SoundType sound = ST_NONE;
 	int grow = food_grow_table[food];
 	if (grow >= 0)
+	{
+		sound = ST_CRUNCH;
 		snake_add_segments(snake, grow * PIECE_DRAW_INCREMENT);
+	}
 	else
+	{
+		sound = ST_HARM;
 		snake_remove_segments(snake, -grow * PIECE_DRAW_INCREMENT);
+	}
 
 	// speed, wobble, special effects
 	int speed = 0;
@@ -283,12 +289,15 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			speed = -2;
 			break;
 		case VEGE_DEVILS_LETTUCE:
+			sound = ST_ONIX;
 			snake->onix = true;
 			break;
 		case VEGE_GHOST_PEPPER:
+			sound = ST_GHOST;
 			snake->ghost = true;
 			break;
 		case VEGE_GOLD_MUSHROOM:
+			sound = ST_BITE;
 			snake->uroboros = true;
 			break;
 		default:
@@ -321,6 +330,8 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			snake->base_w = SNAKE_STARTING_ANGLE_V;
 		}
 	}
+
+	sound_play(sound);
 }
 
 bool snake_check_selfcollision(struct Snake *snake)
@@ -337,7 +348,7 @@ bool snake_check_selfcollision(struct Snake *snake)
 		{
 			if (snake->uroboros)
 			{
-				Mix_PlayChannel(-1, sfx_crunch, 0);
+				sound_play(ST_BITE);
 				snake_remove_segments(snake, snake->len - i + 1);
 				return false;
 			}
@@ -382,7 +393,7 @@ bool snake_check_obstaclecollision(struct Snake *snake, struct Obstacle obs[], i
 			if (snake->onix)
 			{
 				int meal = (obs[i].segment.r / (int)CONSUMABLE_RADIUS) * PIECE_DRAW_INCREMENT;
-				Mix_PlayChannel(-1, sfx_crunch, 0);
+				sound_play(ST_ONIX);
 				snake_add_segments(snake, meal);
 				obs[i].valid = false;
 				return false;
@@ -1104,4 +1115,11 @@ bool room_check_gameover(struct Room *room)
 		snake_check_wallcollision(&room->snake, room->walls, room->walls_num) ||
 		snake_check_obstaclecollision(&room->snake, room->obstacles, room->obstacles_num) ||
 		(room->snake.len < START_LEN);
+}
+
+void sound_play(enum SoundType st)
+{
+	if (st >= ST_END)
+		return;
+	Mix_PlayChannel(-1, sfx_chunks[st], 0);
 }

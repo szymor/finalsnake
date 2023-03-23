@@ -190,4 +190,6 @@ void room_process(struct Room *room, double dt);
 void room_draw(const struct Room *room);
 bool room_check_gameover(struct Room *room);
 
+void sound_play(enum SoundType st);
+
 #endif
