@@ -75,12 +75,14 @@ struct Snake
 	struct Vec2D pieces[MAX_SNAKE_LEN];
 	enum Turn turn;
 	enum SkillType skill;
+	double skill_timeout;
 };
 
 struct Consumable
 {
 	struct Segment segment;
 	double phase;
+	double timeout;
 	enum Food type;
 	SDL_Surface *food_surface;
 	SDL_Rect src_rect;
@@ -172,7 +174,7 @@ bool snake_check_wallcollision(const struct Snake *snake, struct Wall walls[], i
 bool snake_check_obstaclecollision(struct Snake *snake, struct Obstacle obs[], int obnum);
 
 void consumable_generate(struct Consumable *col, const struct Room *room);
-void consumable_process(struct Consumable *col, double dt);
+void consumable_process(struct Consumable *col, double dt, const struct Room *room);
 void consumable_draw(struct Consumable *col);
 
 void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, double r);

@@ -98,6 +98,7 @@ void snake_init(struct Snake *snake)
 			break;
 	}
 	snake->skill = SKILL_NONE;
+	snake->skill_timeout = 0;
 }
 
 void snake_process(struct Snake *snake, double dt)
@@ -138,6 +139,17 @@ void snake_process(struct Snake *snake, double dt)
 		{
 			vmul(&diff, (dlen - PIECE_DISTANCE) / dlen);
 			vadd(&snake->pieces[i], &diff);
+		}
+	}
+
+	// skill timeout
+	if (snake->skill_timeout > 0)
+	{
+		snake->skill_timeout -= dt;
+		if (snake->skill_timeout < 0)
+		{
+			snake->skill = SKILL_NONE;
+			snake->skill_timeout = 0;
 		}
 	}
 }
@@ -289,14 +301,17 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 		case VEGE_DEVILS_LETTUCE:
 			sound = ST_ONIX;
 			snake->skill = SKILL_ONIX;
+			snake->skill_timeout = 15;
 			break;
 		case VEGE_GHOST_PEPPER:
 			sound = ST_GHOST;
 			snake->skill = SKILL_GHOST;
+			snake->skill_timeout = 30;
 			break;
 		case VEGE_GOLD_MUSHROOM:
 			sound = ST_BITE;
 			snake->skill = SKILL_UROBOROS;
+			snake->skill_timeout = 60;
 			break;
 		default:
 			speed = 0;
@@ -496,12 +511,56 @@ void consumable_generate(struct Consumable *col, const struct Room *room)
 		col->segment.pos = room->snake.pieces[0];
 	}
 	col->phase = 0;
+	col->timeout = 60;
 }
 
-void consumable_process(struct Consumable *col, double dt)
+void consumable_process(struct Consumable *col, double dt, const struct Room *room)
 {
+	// for drawing
 	col->phase += 2 * M_PI * 0.75 * dt;
 	SINCOS_FIX_INC(col->phase);
+
+	// disappearing after timeout
+	col->timeout -= dt;
+	if (col->timeout < 0)
+	{
+		bool evolve = false;
+		switch (col->type)
+		{
+			case VEGE_CABBAGE:
+				evolve = rand() % 5 == 0;
+				col->type = VEGE_DEVILS_LETTUCE;
+				break;
+			case VEGE_CAYENNE:
+				evolve = rand() % 5 == 0;
+				col->type = VEGE_GHOST_PEPPER;
+				break;
+			case VEGE_SHROOM1:
+			case VEGE_SHROOM2:
+			case VEGE_SHROOM3:
+				evolve = rand() % 5 == 0;
+				col->type = VEGE_GOLD_MUSHROOM;
+				break;
+			case VEGE_BLACK_BEANS:
+			case VEGE_GREEN_BEANS:
+			case VEGE_RED_BEANS:
+				evolve = rand() % 5 == 0;
+				col->type = VEGE_PIXIE_BEANS;
+				break;
+			default:
+				evolve = false;
+		}
+
+		if (evolve)
+		{
+			get_sprite_from_food(col->type, &col->food_surface, &col->src_rect);
+			col->timeout = 60;
+		}
+		else
+		{
+			consumable_generate(col, room);
+		}
+	}
 }
 
 void consumable_draw(struct Consumable *col)
@@ -1000,7 +1059,7 @@ void room_process(struct Room *room, double dt)
 
 	for (int i = 0; i < room->consumables_num; ++i)
 	{
-		consumable_process(&room->consumables[i], dt);
+		consumable_process(&room->consumables[i], dt, room);
 	}
 	snake_process(&room->snake, dt);
 	snake_eat_consumables(&room->snake, room);
