@@ -9,7 +9,7 @@ blueberry,+1 grow,,fruit
 cactus pear,+2 grow,,fruit
 cantaloupe,+2 grow,,fruit
 cherry,+1 grow,,fruit
-cinderberry,n/a,fantasy,fruit
+cinderberry,"-20 grow, +4 speed","fantasy, locked",fruit
 coconut,+3 grow,,fruit
 cranberry,+1 grow,,fruit
 destinyfruit,n/a,fantasy,fruit
@@ -22,16 +22,16 @@ lemon,-1 speed,,fruit
 lime,-1 speed,,fruit
 lychee,+1 grow,,fruit
 mango,+2 grow,,fruit
-metalberry,n/a,"fantasy, evolves from oreberry",fruit
+metalberry,onix,"fantasy, sometimes evolves from oreberry",fruit
 orange,+2 grow,,fruit
-oreberry,n/a,fantasy,fruit
+oreberry,null,"fantasy, locked",fruit
 passionfruit,n/a,fantasy,fruit
 peach,+2 grow,,fruit
 pear,+2 grow,,fruit
 pineapple,+3 grow,,fruit
 pomegranate,+2 grow,,fruit
 raspberry,+1 grow,,fruit
-soulfruit,n/a,fantasy,fruit
+soulfruit,ghost,"fantasy, locked",fruit
 strawberry,+1 grow,,fruit
 tomato,+1 grow,,fruit
 watermelon,+3 grow,,fruit
@@ -45,19 +45,19 @@ carrot,+1 grow,,vegetable
 cayenne,+2 speed,,vegetable
 corn,+2 grow,,vegetable
 cucumber,null,,vegetable
-devils lettuce,onix,"fantasy, occasionally evolves from cabbage",vegetable
+devils lettuce,uroboros,"fantasy, occasionally evolves from cabbage",vegetable
 eggplant,+1 grow,,vegetable
 garlic,null,,vegetable
 ghost pepper,ghost,"fantasy, occasionally evolves from cayenne",vegetable
 ginger,+1 grow,,vegetable
-gold mushroom,uroboros,"fantasy, occasionally evolves from shrooms",vegetable
+gold mushroom,unlock,"fantasy, rarily evolves from shrooms",vegetable
 green beans,+1 grow,,vegetable
 habanero,+3 speed,,vegetable
 jalapeno,+1 speed,,vegetable
 jellyroot,n/a,fantasy,vegetable
 leek,+1 grow,,vegetable
 onion,+1 grow,,vegetable
-pixie beans,reset speed and wobble,"fantasy, occasionally evolves from black, red and green beans",vegetable
+pixie beans,reset speed and wobble,"fantasy, rarily evolves from black, red and green beans",vegetable
 potato,+2 grow,,vegetable
 pumpkin,+3 grow,,vegetable
 raddish,+1 grow,,vegetable

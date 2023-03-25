@@ -16,7 +16,7 @@ int fps = 0;
 static int food_grow_table[FOOD_END] = {
 	[FRUIT_START] =
 	1, 2, 1, 2, 2, 1,
-	1, 2, 2, 1, 0, 3,
+	1, 2, 2, 1, -20, 3,
 	1, 0, 3, 1, 1, 2,
 	2, 0, 0, 1, 2, 0,
 	2, 0, 0, 2, 2, 3,
@@ -271,6 +271,19 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 	int speed = 0;
 	switch (food)
 	{
+		case FRUIT_METALBERRY:
+			sound = ST_ONIX;
+			snake->skill = SKILL_ONIX;
+			snake->skill_timeout = 15;
+			break;
+		case FRUIT_SOULFRUIT:
+			sound = ST_GHOST;
+			snake->skill = SKILL_GHOST;
+			snake->skill_timeout = 30;
+			break;
+		case FRUIT_CINDERBERRY:
+			speed = 4;
+			break;
 		case FRUIT_LEMON:
 		case FRUIT_LIME:
 			speed = -1;
@@ -299,9 +312,9 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			speed = -2;
 			break;
 		case VEGE_DEVILS_LETTUCE:
-			sound = ST_ONIX;
-			snake->skill = SKILL_ONIX;
-			snake->skill_timeout = 15;
+			sound = ST_BITE;
+			snake->skill = SKILL_UROBOROS;
+			snake->skill_timeout = 60;
 			break;
 		case VEGE_GHOST_PEPPER:
 			sound = ST_GHOST;
@@ -309,9 +322,7 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			snake->skill_timeout = 30;
 			break;
 		case VEGE_GOLD_MUSHROOM:
-			sound = ST_BITE;
-			snake->skill = SKILL_UROBOROS;
-			snake->skill_timeout = 60;
+			// unlock, to be done
 			break;
 		default:
 			speed = 0;
@@ -527,6 +538,10 @@ void consumable_process(struct Consumable *col, double dt, const struct Room *ro
 		bool evolve = false;
 		switch (col->type)
 		{
+			case FRUIT_OREBERRY:
+				evolve = rand() % 2 == 0;
+				col->type = FRUIT_METALBERRY;
+				break;
 			case VEGE_CABBAGE:
 				evolve = rand() % 5 == 0;
 				col->type = VEGE_DEVILS_LETTUCE;
@@ -538,13 +553,13 @@ void consumable_process(struct Consumable *col, double dt, const struct Room *ro
 			case VEGE_SHROOM1:
 			case VEGE_SHROOM2:
 			case VEGE_SHROOM3:
-				evolve = rand() % 5 == 0;
+				evolve = rand() % 10 == 0;
 				col->type = VEGE_GOLD_MUSHROOM;
 				break;
 			case VEGE_BLACK_BEANS:
 			case VEGE_GREEN_BEANS:
 			case VEGE_RED_BEANS:
-				evolve = rand() % 5 == 0;
+				evolve = rand() % 10 == 0;
 				col->type = VEGE_PIXIE_BEANS;
 				break;
 			default:
