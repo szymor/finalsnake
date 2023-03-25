@@ -191,5 +191,9 @@ void room_draw(const struct Room *room);
 bool room_check_gameover(struct Room *room);
 
 void sound_play(enum SoundType st);
+enum Food get_random_food(void);
+void food_lock(void);
+void food_unlock(void);
+void food_evaluate_probability(void);
 
 #endif

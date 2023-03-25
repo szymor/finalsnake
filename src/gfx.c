@@ -331,16 +331,6 @@ void food_dispose(void)
 	}
 }
 
-enum Food get_random_food(void)
-{
-	int ret = rand() % (FRUITS_COUNT + VEGGIES_COUNT);
-	if (ret >= FRUIT_END)
-	{
-		ret += -FRUIT_END + VEGE_START;
-	}
-	return (enum Food)ret;
-}
-
 void get_sprite_from_food(enum Food food, SDL_Surface **surface, SDL_Rect *rect)
 {
 	const bool is_fruit = food < FRUIT_END;

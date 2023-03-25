@@ -38,7 +38,6 @@ void tiles_dispose(void);
 void food_init(void);
 void food_recolor(int hue);
 void food_dispose(void);
-enum Food get_random_food(void);
 void get_sprite_from_food(enum Food food, SDL_Surface **surface, SDL_Rect *rect);
 
 void parts_init(void);

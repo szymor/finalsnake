@@ -11,8 +11,6 @@ enum Region
 	R_RIGHT = 8
 };
 
-int fps = 0;
-
 static int food_grow_table[FOOD_END] = {
 	[FRUIT_START] =
 	1, 2, 1, 2, 2, 1,
@@ -29,6 +27,27 @@ static int food_grow_table[FOOD_END] = {
 	1, 1, 1, -10, 0, 5,
 	0, 0, 2, 1, 1, 1
 };
+
+static int food_probability_table[FOOD_END] = {
+	[FRUIT_START] =
+	3, 2, 3, 2, 2, 3,
+	3, 2, 2, 3, 0, 1,
+	3, 0, 1, 3, 3, 2,
+	2, 2, 2, 3, 2, 0,
+	2, 0, 0, 2, 2, 1,
+	2, 3, 0, 3, 3, 1,
+	[VEGE_START] =
+	3, 2, 3, 2, 3, 2,
+	2, 2, 5, 0, 5, 0,
+	3, 0, 3, 2, 2, 0,
+	3, 3, 0, 2, 1, 3,
+	3, 3, 3, 2, 2, 2,
+	5, 5, 2, 3, 3, 3
+};
+
+static int food_probability_sum = 0;
+
+int fps = 0;
 
 struct Camera camera = {
 	.cm = CM_FIXED,
@@ -322,7 +341,7 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			snake->skill_timeout = 30;
 			break;
 		case VEGE_GOLD_MUSHROOM:
-			// unlock, to be done
+			food_unlock();
 			break;
 		default:
 			speed = 0;
@@ -1022,6 +1041,7 @@ void room_init(struct Room *room)
 	int hue = rand() % HUE_PRECISION;
 	tiles_prepare(rand() % SUIT_COUNT, hue);
 	food_recolor(hue);
+	food_lock();
 	parts_recolor(hue);
 	room->wall_color = get_wall_color(hue);
 	room->obstacle_style = rand() % OBS_STYLES_COUNT + 1;
@@ -1196,4 +1216,50 @@ void sound_play(enum SoundType st)
 	if (st >= ST_END)
 		return;
 	Mix_PlayChannel(-1, sfx_chunks[st], 0);
+}
+
+enum Food get_random_food(void)
+{
+	int prob = rand() % food_probability_sum;
+	int idx = 0;
+	for (int i = 0; i < FOOD_END; ++i)
+	{
+		if (i == FRUIT_END)
+			i = VEGE_START;
+		if (prob < food_probability_table[i])
+		{
+			idx = i;
+			break;
+		}
+		else
+		{
+			prob -= food_probability_table[i];
+		}
+	}
+	return (enum Food)idx;
+}
+
+void food_lock(void)
+{
+	food_probability_table[FRUIT_CINDERBERRY] = 0;
+	food_probability_table[FRUIT_OREBERRY] = 0;
+	food_probability_table[FRUIT_SOULFRUIT] = 0;
+	food_evaluate_probability();
+}
+
+void food_unlock(void)
+{
+	food_probability_table[FRUIT_CINDERBERRY] = 3;
+	food_probability_table[FRUIT_OREBERRY] = 1;
+	food_probability_table[FRUIT_SOULFRUIT] = 1;
+	food_evaluate_probability();
+}
+
+void food_evaluate_probability(void)
+{
+	food_probability_sum = 0;
+	for (int i = 0; i < FOOD_END; ++i)
+	{
+		food_probability_sum += food_probability_table[i];
+	}
 }
