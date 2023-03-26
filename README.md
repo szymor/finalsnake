@@ -12,5 +12,4 @@ As the name suggests, it is yet another implementation of a popular Snake game. 
 ## to do
 - music and sounds,
 - custom level support,
-- multiple snakes (one for player, others for AI),
-- combos - eat fruits and veggies in a certain order to get additional bonuses.
+- multiple snakes (one for player, others for AI).

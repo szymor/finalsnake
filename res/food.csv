@@ -22,9 +22,9 @@ lemon,-1 speed,,fruit
 lime,-1 speed,,fruit
 lychee,+1 grow,,fruit
 mango,+2 grow,,fruit
-metalberry,onix,"fantasy, sometimes evolves from oreberry",fruit
+metalberry,"-2 speed, onix","fantasy, sometimes evolves from oreberry",fruit
 orange,+2 grow,,fruit
-oreberry,null,"fantasy, locked",fruit
+oreberry,-1 speed,"fantasy, locked",fruit
 passionfruit,n/a,fantasy,fruit
 peach,+2 grow,,fruit
 pear,+2 grow,,fruit
@@ -44,11 +44,11 @@ cabbage,+2 grow,,vegetable
 carrot,+1 grow,,vegetable
 cayenne,+2 speed,,vegetable
 corn,+2 grow,,vegetable
-cucumber,null,,vegetable
+cucumber,+1 grow,,vegetable
 devils lettuce,uroboros,"fantasy, occasionally evolves from cabbage",vegetable
 eggplant,+1 grow,,vegetable
-garlic,null,,vegetable
-ghost pepper,ghost,"fantasy, occasionally evolves from cayenne",vegetable
+garlic,wobble off,,vegetable
+ghost pepper,"+4 speed, ghost","fantasy, occasionally evolves from cayenne",vegetable
 ginger,+1 grow,,vegetable
 gold mushroom,unlock,"fantasy, rarily evolves from shrooms",vegetable
 green beans,+1 grow,,vegetable
@@ -67,7 +67,7 @@ rhubarb,+1 grow,,vegetable
 shroom1,-10 grow,kills if the snake is too short,vegetable
 shroom2,wobble on,,vegetable
 shroom3,"+5 grow, -2 speed",,vegetable
-spinach,null,,vegetable
-turnip,null,,vegetable
+spinach,+1 grow,,vegetable
+turnip,+2 grow,,vegetable
 yam,+2 grow,,vegetable
 yellow bellpepper,+1 grow,,vegetable

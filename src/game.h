@@ -17,8 +17,10 @@
 #define SNAKE_W_MULTIPLIER				(1.5)
 #define SNAKE_STARTING_VELOCITY			(40.0)
 #define SNAKE_STARTING_ANGLE_V			(M_PI)
-#define SNAKE_MAX_VELOCITY				(120.0)
-#define SNAKE_MAX_ANGLE_V				(M_PI * 1.83)
+#define SNAKE_MIN_VELOCITY				(20.0)
+#define SNAKE_MIN_ANGLE_V				(M_PI * 0.68)
+#define SNAKE_MAX_VELOCITY				(160.0)
+#define SNAKE_MAX_ANGLE_V				(M_PI * 2.14)
 #define SNAKE_BASE_V_MULTIPLIER			(1.19)
 #define SNAKE_BASE_W_MULTIPLIER			(1.10)
 

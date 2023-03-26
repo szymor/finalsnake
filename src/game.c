@@ -2,6 +2,7 @@
 #include "main.h"
 #include "game.h"
 #include "gfx.h"
+#include <math.h>
 
 enum Region
 {
@@ -21,11 +22,11 @@ static int food_grow_table[FOOD_END] = {
 	2, 1, 0, 1, 1, 3,
 	[VEGE_START] =
 	1, 2, 1, 2, 1, 2,
-	0, 2, 0, 0, 0, 0,
+	0, 2, 1, 0, 0, 0,
 	1, 0, 1, 0, 0, 0,
 	1, 1, 0, 2, 3, 1,
 	1, 1, 1, -10, 0, 5,
-	0, 0, 2, 1, 1, 1
+	1, 2, 2, 1, 1, 1
 };
 
 static int food_probability_table[FOOD_END] = {
@@ -38,11 +39,11 @@ static int food_probability_table[FOOD_END] = {
 	2, 3, 0, 3, 3, 1,
 	[VEGE_START] =
 	3, 2, 3, 2, 3, 2,
-	2, 2, 5, 0, 5, 0,
-	3, 0, 3, 2, 2, 0,
+	2, 2, 3, 0, 4, 0,
+	3, 0, 3, 2, 3, 0,
 	3, 3, 0, 2, 1, 3,
 	3, 3, 3, 2, 2, 2,
-	5, 5, 2, 3, 3, 3
+	3, 2, 2, 3, 3, 3
 };
 
 static int food_probability_sum = 0;
@@ -101,8 +102,8 @@ void snake_init(struct Snake *snake)
 	snake->dir = 0.0;
 	snake->len = 1;
 	snake->pieces[0] = (struct Vec2D) {
-			.x = SCREEN_WIDTH/2,
-			.y = SCREEN_HEIGHT/2
+			.x = SCREEN_WIDTH / 2,
+			.y = SCREEN_HEIGHT / 2
 		};
 	snake->turn = TURN_NONE;
 	snake->wobbly_freq = 0;
@@ -290,7 +291,11 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 	int speed = 0;
 	switch (food)
 	{
+		case FRUIT_OREBERRY:
+			speed = -1;
+			break;
 		case FRUIT_METALBERRY:
+			speed = -2;
 			sound = ST_ONIX;
 			snake->skill = SKILL_ONIX;
 			snake->skill_timeout = 15;
@@ -324,6 +329,10 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			snake->wobbly_freq = 0;
 			snake->wobbly_phase = 0;
 			break;
+		case VEGE_GARLIC:
+			snake->wobbly_freq = 0;
+			snake->wobbly_phase = 0;
+			break;
 		case VEGE_SHROOM2:
 			snake->wobbly_freq = 0.8 * (rand() % 3 + 1);
 			break;
@@ -336,6 +345,7 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			snake->skill_timeout = 60;
 			break;
 		case VEGE_GHOST_PEPPER:
+			speed = 4;
 			sound = ST_GHOST;
 			snake->skill = SKILL_GHOST;
 			snake->skill_timeout = 30;
@@ -348,31 +358,17 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			speed = 0;
 	}
 
-	if (speed > 0)
+	snake->base_v = snake->base_v * pow(SNAKE_BASE_V_MULTIPLIER, speed);
+	snake->base_w = snake->base_w * pow(SNAKE_BASE_W_MULTIPLIER, speed);
+	if (snake->base_v > SNAKE_MAX_VELOCITY)
 	{
-		while (speed-- > 0)
-		{
-			snake->base_v *= SNAKE_BASE_V_MULTIPLIER;
-			snake->base_w *= SNAKE_BASE_W_MULTIPLIER;
-		}
-		if (snake->base_v > SNAKE_MAX_VELOCITY)
-		{
-			snake->base_v = SNAKE_MAX_VELOCITY;
-			snake->base_w = SNAKE_MAX_ANGLE_V;
-		}
+		snake->base_v = SNAKE_MAX_VELOCITY;
+		snake->base_w = SNAKE_MAX_ANGLE_V;
 	}
-	else if (speed < 0)
+	else if (snake->base_v < SNAKE_MIN_VELOCITY)
 	{
-		while (speed++ < 0)
-		{
-			snake->base_v /= SNAKE_BASE_V_MULTIPLIER;
-			snake->base_w /= SNAKE_BASE_W_MULTIPLIER;
-		}
-		if (snake->base_v < SNAKE_STARTING_VELOCITY)
-		{
-			snake->base_v = SNAKE_STARTING_VELOCITY;
-			snake->base_w = SNAKE_STARTING_ANGLE_V;
-		}
+		snake->base_v = SNAKE_MIN_VELOCITY;
+		snake->base_w = SNAKE_MIN_ANGLE_V;
 	}
 
 	sound_play(sound);
@@ -579,7 +575,7 @@ void consumable_process(struct Consumable *col, double dt, const struct Room *ro
 			case VEGE_BLACK_BEANS:
 			case VEGE_GREEN_BEANS:
 			case VEGE_RED_BEANS:
-				evolve = rand() % 5 == 0;
+				evolve = rand() % 2 == 0;
 				col->type = VEGE_PIXIE_BEANS;
 				break;
 			default:
@@ -729,7 +725,7 @@ void wall_init(struct Wall *wall, double x1, double y1, double x2, double y2, do
 	wall->r = r;
 }
 
-static int getRegion(int x, int y, int r)
+static int get_region(int x, int y, int r)
 {
 	int code = 0;
 	if (x < -r)
@@ -753,8 +749,8 @@ void wall_draw(const struct Wall *wall, Uint32 color)
 	camera_convert(&x2, &y2);
 
 	// check if on screen - Cohen Sutherland Clipping
-	int c1 = getRegion(x1, y1, wall->r);
-	int c2 = getRegion(x2, y2, wall->r);
+	int c1 = get_region(x1, y1, wall->r);
+	int c2 = get_region(x2, y2, wall->r);
 	int failsafe = 0;
 	while (1)
 	{
@@ -798,13 +794,13 @@ void wall_draw(const struct Wall *wall, Uint32 color)
 			{
 				x1 = x;
 				y1 = y;
-				c1 = getRegion(x1, y1, wall->r);
+				c1 = get_region(x1, y1, wall->r);
 			}
 			else
 			{
 				x2 = x;
 				y2 = y;
-				c2 = getRegion(x2, y2, wall->r);
+				c2 = get_region(x2, y2, wall->r);
 			}
 		}
 	}
@@ -1250,9 +1246,9 @@ void food_lock(void)
 
 void food_unlock(void)
 {
-	food_probability_table[FRUIT_CINDERBERRY] = 3;
-	food_probability_table[FRUIT_OREBERRY] = 1;
-	food_probability_table[FRUIT_SOULFRUIT] = 1;
+	food_probability_table[FRUIT_CINDERBERRY] = 5;
+	food_probability_table[FRUIT_OREBERRY] = 5;
+	food_probability_table[FRUIT_SOULFRUIT] = 3;
 	food_evaluate_probability();
 }
 
