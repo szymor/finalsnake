@@ -341,6 +341,7 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			snake->skill_timeout = 30;
 			break;
 		case VEGE_GOLD_MUSHROOM:
+			sound = ST_UNLOCK;
 			food_unlock();
 			break;
 		default:

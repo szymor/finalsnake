@@ -44,6 +44,7 @@ enum SoundType
 	ST_GHOST,
 	ST_HARM,
 	ST_ONIX,
+	ST_UNLOCK,
 	ST_END
 };
 

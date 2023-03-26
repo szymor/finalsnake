@@ -102,6 +102,11 @@ int main(int argc, char *argv[])
 	{
 		printf("Mix_LoadWAV: %s\n", Mix_GetError());
 	}
+	sfx_chunks[ST_UNLOCK] = Mix_LoadWAV(SFX_DIR "unlock.wav");
+	if (!sfx_chunks[ST_UNLOCK])
+	{
+		printf("Mix_LoadWAV: %s\n", Mix_GetError());
+	}
 
 	tiles_init();
 	food_init();
