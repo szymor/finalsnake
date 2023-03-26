@@ -573,13 +573,13 @@ void consumable_process(struct Consumable *col, double dt, const struct Room *ro
 			case VEGE_SHROOM1:
 			case VEGE_SHROOM2:
 			case VEGE_SHROOM3:
-				evolve = rand() % 10 == 0;
+				evolve = rand() % 5 == 0;
 				col->type = VEGE_GOLD_MUSHROOM;
 				break;
 			case VEGE_BLACK_BEANS:
 			case VEGE_GREEN_BEANS:
 			case VEGE_RED_BEANS:
-				evolve = rand() % 10 == 0;
+				evolve = rand() % 5 == 0;
 				col->type = VEGE_PIXIE_BEANS;
 				break;
 			default:
