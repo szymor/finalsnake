@@ -24,6 +24,10 @@
 #define SNAKE_BASE_V_MULTIPLIER			(1.19)
 #define SNAKE_BASE_W_MULTIPLIER			(1.10)
 
+#define AI_DUMB_EYES_NUM				(16)
+#define AI_DUMB_VISION_RANGE			(24.0)
+#define AI_DUMB_DETECTION_MARGIN		(3.0)
+
 #define SDL_CHECK(x) if (x) { printf("SDL: %s\n", SDL_GetError()); exit(0); }
 #define SDLGFX_COLOR(r, g, b) (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff)
 

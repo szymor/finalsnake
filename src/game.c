@@ -236,33 +236,111 @@ void snake_control(struct Snake *snake)
 
 void snake_ai_dumb_control(struct Snake *snake, const struct Room *room)
 {
-	// find the nearest food
-	int idx = 0;
-	double min_dist = vdist(&snake->pieces[0], &room->consumables[0].segment.pos);
-	for (int i = 1; i < room->consumables_num; ++i)
+	// "eyes"
+	struct Vec2D eyes[AI_DUMB_EYES_NUM];
+	for (int i = 0; i < AI_DUMB_EYES_NUM; ++i)
 	{
-		double dist = vdist(&snake->pieces[0], &room->consumables[i].segment.pos);
-		if (dist < min_dist)
+		sincos(snake->dir - M_PI_2 + (M_PI * i) / AI_DUMB_EYES_NUM, &eyes[i].x, &eyes[i].y);
+		eyes[i].y = -eyes[i].y;
+		vadd(vmul(&eyes[i], AI_DUMB_VISION_RANGE), &snake->pieces[0]);
+	}
+
+	int leftd = 0;
+	int rightd = 0;
+	if (snake->skill != SKILL_GHOST && snake->skill != SKILL_ONIX)
+	{
+		for (int i = 0; i < room->obstacles_num; ++i)
 		{
-			idx = i;
-			min_dist = dist;
+			if (!room->obstacles[i].valid)
+				continue;
+			for (int j = 0; j < AI_DUMB_EYES_NUM / 2; ++j)
+			{
+				if (vdist(&room->obstacles[i].segment.pos, &eyes[j]) <
+					room->obstacles[i].segment.r)
+					++leftd;
+			}
+			for (int j = AI_DUMB_EYES_NUM / 2; j < AI_DUMB_EYES_NUM; ++j)
+			{
+				if (vdist(&room->obstacles[i].segment.pos, &eyes[j]) <
+					room->obstacles[i].segment.r)
+					++rightd;
+			}
+		}
+	}
+	if (snake->skill != SKILL_GHOST)
+	{
+		for (int i = 0; i < room->walls_num; ++i)
+		{
+			for (int j = 0; j < AI_DUMB_EYES_NUM / 2; ++j)
+			{
+				struct Vec2D *wd = wall_dist(&room->walls[i], &eyes[j]);
+				if (vlen(wd) < room->walls[i].r)
+					++leftd;
+			}
+			for (int j = AI_DUMB_EYES_NUM / 2; j < AI_DUMB_EYES_NUM; ++j)
+			{
+				struct Vec2D *wd = wall_dist(&room->walls[i], &eyes[j]);
+				if (vlen(wd) < room->walls[i].r)
+					++rightd;
+			}
+		}
+	}
+	if (snake->skill != SKILL_GHOST && snake->skill != SKILL_UROBOROS)
+	{
+		for (int i = snake->len - 1; i > START_LEN + 1; i -= PIECE_DRAW_INCREMENT)
+		{
+			for (int j = 0; j < AI_DUMB_EYES_NUM / 2; ++j)
+			{
+				if (vdist(&snake->pieces[i], &eyes[j]) < (BODY_RADIUS + AI_DUMB_DETECTION_MARGIN))
+					++leftd;
+			}
+			for (int j = AI_DUMB_EYES_NUM / 2; j < AI_DUMB_EYES_NUM; ++j)
+			{
+				if (vdist(&snake->pieces[i], &eyes[j]) < (BODY_RADIUS + AI_DUMB_DETECTION_MARGIN))
+					++rightd;
+			}
 		}
 	}
 
-	// adjust direction
-	struct Vec2D dirvec = room->consumables[idx].segment.pos;
-	vsub(&dirvec, &snake->pieces[0]);
-	double ddiff = atan2(dirvec.y, dirvec.x) + M_PI_2 - snake->dir;
-	SINCOS_FIX_INC(ddiff);
-	SINCOS_FIX_DEC(ddiff);
-
-	if (ddiff > 0)
+	snake->turn = TURN_NONE;
+	if (leftd > rightd)
 	{
 		snake->turn = TURN_RIGHT;
 	}
-	else
+	else if (rightd > leftd)
 	{
 		snake->turn = TURN_LEFT;
+	}
+	else
+	{
+		// find the nearest food
+		int idx = 0;
+		double min_dist = vdist(&snake->pieces[0], &room->consumables[0].segment.pos);
+		for (int i = 1; i < room->consumables_num; ++i)
+		{
+			double dist = vdist(&snake->pieces[0], &room->consumables[i].segment.pos);
+			if (dist < min_dist)
+			{
+				idx = i;
+				min_dist = dist;
+			}
+		}
+
+		// adjust direction
+		struct Vec2D dirvec = room->consumables[idx].segment.pos;
+		vsub(&dirvec, &snake->pieces[0]);
+		double ddiff = atan2(dirvec.y, dirvec.x) + M_PI_2 - snake->dir;
+		SINCOS_FIX_INC(ddiff);
+		SINCOS_FIX_DEC(ddiff);
+
+		if (ddiff > 0)
+		{
+			snake->turn = TURN_RIGHT;
+		}
+		else
+		{
+			snake->turn = TURN_LEFT;
+		}
 	}
 
 	snake->v = snake->base_v;
@@ -414,7 +492,6 @@ bool snake_check_selfcollision(struct Snake *snake)
 	if (SKILL_GHOST == snake->skill)
 		return false;
 
-	//for (int i = START_LEN + 1; i < snake->len; ++i)
 	for (int i = snake->len - 1; i > START_LEN + 1; i -= PIECE_DRAW_INCREMENT)
 	{
 		struct Vec2D diff = snake->pieces[0];
@@ -1122,6 +1199,7 @@ void room_process(struct Room *room, double dt)
 			room->obstacle_frame[i] = 0;
 	}
 
+	//snake_ai_dumb_control(&room->snake, room);
 	snake_control(&room->snake);
 
 	for (int i = 0; i < room->consumables_num; ++i)
