@@ -234,6 +234,41 @@ void snake_control(struct Snake *snake)
 	}
 }
 
+void snake_ai_dumb_control(struct Snake *snake, const struct Room *room)
+{
+	// find the nearest food
+	int idx = 0;
+	double min_dist = vdist(&snake->pieces[0], &room->consumables[0].segment.pos);
+	for (int i = 1; i < room->consumables_num; ++i)
+	{
+		double dist = vdist(&snake->pieces[0], &room->consumables[i].segment.pos);
+		if (dist < min_dist)
+		{
+			idx = i;
+			min_dist = dist;
+		}
+	}
+
+	// adjust direction
+	struct Vec2D dirvec = room->consumables[idx].segment.pos;
+	vsub(&dirvec, &snake->pieces[0]);
+	double ddiff = atan2(dirvec.y, dirvec.x) + M_PI_2 - snake->dir;
+	SINCOS_FIX_INC(ddiff);
+	SINCOS_FIX_DEC(ddiff);
+
+	if (ddiff > 0)
+	{
+		snake->turn = TURN_RIGHT;
+	}
+	else
+	{
+		snake->turn = TURN_LEFT;
+	}
+
+	snake->v = snake->base_v;
+	snake->w = snake->base_w;
+}
+
 void snake_add_segments(struct Snake *snake, int count)
 {
 	int start = snake->len;

@@ -167,6 +167,7 @@ void snake_init(struct Snake *snake);
 void snake_process(struct Snake *snake, double dt);
 void snake_draw(const struct Snake *snake);
 void snake_control(struct Snake *snake);
+void snake_ai_dumb_control(struct Snake *snake, const struct Room *room);
 void snake_add_segments(struct Snake *snake, int count);
 void snake_remove_segments(struct Snake *snake, int count);
 void snake_eat_consumables(struct Snake *snake, struct Room *room);
