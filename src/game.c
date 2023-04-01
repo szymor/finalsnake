@@ -388,7 +388,7 @@ bool snake_check_selfcollision(struct Snake *snake)
 		{
 			if (SKILL_UROBOROS == snake->skill)
 			{
-				int seg_num = snake->len - i + 1;
+				int seg_num = snake->len - i;
 				if (seg_num >= PIECE_DRAW_INCREMENT)
 					sound_play(ST_BITE);
 				snake_remove_segments(snake, seg_num);
