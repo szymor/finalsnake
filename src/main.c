@@ -237,6 +237,7 @@ void gs_menu_process(void)
 
 void gs_game_process(void)
 {
+	bool ai = false;
 	bool paused = false;
 	// game data init
 	srand(time(NULL));
@@ -277,13 +278,16 @@ void gs_game_process(void)
 							cm = CM_TPP;
 							camera_prepare(&room.snake, cm);
 							break;
-						case KEY_PREV_CM:
-							cm = (cm + CM_END - 1) % CM_END;
+						case SDLK_4:
+							cm = CM_TPP_DELAYED;
 							camera_prepare(&room.snake, cm);
 							break;
 						case KEY_NEXT_CM:
 							cm = (cm + 1) % CM_END;
 							camera_prepare(&room.snake, cm);
+							break;
+						case KEY_AI:
+							ai = !ai;
 							break;
 						case KEY_START:
 							paused = !paused;
@@ -313,7 +317,7 @@ void gs_game_process(void)
 			fps_counter(dt);
 			if (!paused)
 			{
-				room_process(&room, dt);
+				room_process(&room, dt, ai);
 				camera_process(dt);
 			}
 			room_draw(&room);

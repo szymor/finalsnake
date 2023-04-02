@@ -22,8 +22,8 @@
 #else
 #define KEY_ACCELERATE					SDLK_UP
 #endif
-#define KEY_PREV_CM						SDLK_TAB
-#define KEY_NEXT_CM						SDLK_BACKSPACE
+#define KEY_NEXT_CM						SDLK_TAB
+#define KEY_AI							SDLK_BACKSPACE
 #define KEY_START						SDLK_RETURN
 #define KEY_QUIT						SDLK_ESCAPE
 

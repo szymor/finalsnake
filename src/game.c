@@ -1190,7 +1190,7 @@ void room_dispose(struct Room *room)
 	}
 }
 
-void room_process(struct Room *room, double dt)
+void room_process(struct Room *room, double dt, bool ai)
 {
 	for (int i = 0; i < OBS_SHEETS_COUNT; ++i)
 	{
@@ -1199,8 +1199,10 @@ void room_process(struct Room *room, double dt)
 			room->obstacle_frame[i] = 0;
 	}
 
-	//snake_ai_dumb_control(&room->snake, room);
-	snake_control(&room->snake);
+	if (ai)
+		snake_ai_dumb_control(&room->snake, room);
+	else
+		snake_control(&room->snake);
 
 	for (int i = 0; i < room->consumables_num; ++i)
 	{

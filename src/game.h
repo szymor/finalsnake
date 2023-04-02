@@ -193,7 +193,7 @@ void obstacle_draw(const struct Obstacle *obstacle, const struct Room *room);
 
 void room_init(struct Room *room);
 void room_dispose(struct Room *room);
-void room_process(struct Room *room, double dt);
+void room_process(struct Room *room, double dt, bool ai);
 void room_draw(const struct Room *room);
 bool room_check_gameover(struct Room *room);
 
