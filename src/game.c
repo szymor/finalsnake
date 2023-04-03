@@ -48,6 +48,8 @@ static int food_probability_table[FOOD_END] = {
 
 static int food_probability_sum = 0;
 
+static enum SoundType sfx_st = ST_END;
+
 int fps = 0;
 
 struct Camera camera = {
@@ -387,16 +389,15 @@ void snake_eat_consumables(struct Snake *snake, struct Room *room)
 
 static void snake_apply_effects(struct Snake *snake, enum Food food)
 {
-	enum SoundType sound = ST_NONE;
 	int grow = food_grow_table[food];
 	if (grow >= 0)
 	{
-		sound = ST_CRUNCH;
+		sfx_set(ST_CRUNCH);
 		snake_add_segments(snake, grow * PIECE_DRAW_INCREMENT);
 	}
 	else
 	{
-		sound = ST_HARM;
+		sfx_set(ST_HARM);
 		snake_remove_segments(snake, -grow * PIECE_DRAW_INCREMENT);
 	}
 
@@ -409,12 +410,12 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			break;
 		case FRUIT_METALBERRY:
 			speed = -2;
-			sound = ST_ONIX;
+			sfx_set(ST_ONIX);
 			snake->skill = SKILL_ONIX;
 			snake->skill_timeout = 15;
 			break;
 		case FRUIT_SOULFRUIT:
-			sound = ST_GHOST;
+			sfx_set(ST_GHOST);
 			snake->skill = SKILL_GHOST;
 			snake->skill_timeout = 30;
 			break;
@@ -453,18 +454,18 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 			speed = -2;
 			break;
 		case VEGE_DEVILS_LETTUCE:
-			sound = ST_BITE;
+			sfx_set(ST_BITE);
 			snake->skill = SKILL_UROBOROS;
 			snake->skill_timeout = 60;
 			break;
 		case VEGE_GHOST_PEPPER:
 			speed = 4;
-			sound = ST_GHOST;
+			sfx_set(ST_GHOST);
 			snake->skill = SKILL_GHOST;
 			snake->skill_timeout = 30;
 			break;
 		case VEGE_GOLD_MUSHROOM:
-			sound = ST_UNLOCK;
+			sfx_set(ST_UNLOCK);
 			food_unlock();
 			break;
 		default:
@@ -483,8 +484,6 @@ static void snake_apply_effects(struct Snake *snake, enum Food food)
 		snake->base_v = SNAKE_MIN_VELOCITY;
 		snake->base_w = SNAKE_MIN_ANGLE_V;
 	}
-
-	sound_play(sound);
 }
 
 bool snake_check_selfcollision(struct Snake *snake)
@@ -502,7 +501,7 @@ bool snake_check_selfcollision(struct Snake *snake)
 			{
 				int seg_num = snake->len - i;
 				if (seg_num >= PIECE_DRAW_INCREMENT)
-					sound_play(ST_BITE);
+					sfx_set(ST_BITE);
 				snake_remove_segments(snake, seg_num);
 				return false;
 			}
@@ -547,7 +546,7 @@ bool snake_check_obstaclecollision(struct Snake *snake, struct Obstacle obs[], i
 			if (SKILL_ONIX == snake->skill)
 			{
 				int meal = (obs[i].segment.r / (int)CONSUMABLE_RADIUS) * PIECE_DRAW_INCREMENT;
-				sound_play(ST_ONIX);
+				sfx_set(ST_ONIX);
 				snake_add_segments(snake, meal);
 				obs[i].valid = false;
 				return false;
@@ -1323,11 +1322,20 @@ bool room_check_gameover(struct Room *room)
 		(room->snake.len < START_LEN);
 }
 
-void sound_play(enum SoundType st)
+void sfx_set(enum SoundType st)
 {
 	if (st >= ST_END)
+		sfx_st = ST_END;
+	else
+		sfx_st = st;
+}
+
+void sfx_play(void)
+{
+	if (sfx_st >= ST_END)
 		return;
-	Mix_PlayChannel(-1, sfx_chunks[st], 0);
+	Mix_PlayChannel(-1, sfx_chunks[sfx_st], 0);
+	sfx_st = ST_END;
 }
 
 enum Food get_random_food(void)

@@ -107,6 +107,11 @@ int main(int argc, char *argv[])
 	{
 		printf("Mix_LoadWAV: %s\n", Mix_GetError());
 	}
+	sfx_chunks[ST_DIE] = Mix_LoadWAV(SFX_DIR "die.wav");
+	if (!sfx_chunks[ST_DIE])
+	{
+		printf("Mix_LoadWAV: %s\n", Mix_GetError());
+	}
 
 	tiles_init();
 	food_init();
@@ -328,7 +333,9 @@ void gs_game_process(void)
 			{
 				leave = true;
 				gamestate = GS_GAMEOVER;
+				sfx_set(ST_DIE);
 			}
+			sfx_play();
 		}
 	}
 	room_dispose(&room);
