@@ -273,23 +273,23 @@ void gs_game_process(void)
 					{
 						case SDLK_1:
 							cm = CM_FIXED;
-							camera_prepare(&room.snake, cm);
+							camera_prepare(&room.snake[0], cm);
 							break;
 						case SDLK_2:
 							cm = CM_TRACKING;
-							camera_prepare(&room.snake, cm);
+							camera_prepare(&room.snake[0], cm);
 							break;
 						case SDLK_3:
 							cm = CM_TPP;
-							camera_prepare(&room.snake, cm);
+							camera_prepare(&room.snake[0], cm);
 							break;
 						case SDLK_4:
 							cm = CM_TPP_DELAYED;
-							camera_prepare(&room.snake, cm);
+							camera_prepare(&room.snake[0], cm);
 							break;
 						case KEY_NEXT_CM:
 							cm = (cm + 1) % CM_END;
-							camera_prepare(&room.snake, cm);
+							camera_prepare(&room.snake[0], cm);
 							break;
 						case KEY_AI:
 							ai = !ai;

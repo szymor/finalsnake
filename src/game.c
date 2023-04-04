@@ -121,6 +121,7 @@ void snake_init(struct Snake *snake)
 	}
 	snake->skill = SKILL_NONE;
 	snake->skill_timeout = 0;
+	snake->alive = true;
 }
 
 void snake_process(struct Snake *snake, double dt)
@@ -594,12 +595,18 @@ bool generate_safe_position(
 		}
 		if (snake)
 		{
-			if (vdist(pos, &room->snake.pieces[0]) < safe_distance)
+			for (int i = 0; i < SNAKE_NUM; ++i)
 			{
-				safe = false;
-				++attempts;
-				continue;
+				if (!room->snake[i].alive)
+					continue;
+				if (vdist(pos, &room->snake[i].pieces[0]) < safe_distance)
+				{
+					safe = false;
+					++attempts;
+					break;
+				}
 			}
+			if (!safe) continue;
 		}
 		if (wall)
 		{
@@ -646,7 +653,7 @@ void consumable_generate(struct Consumable *col, const struct Room *room)
 		safe_distance, 100, true, true, true))
 	{
 		// spawn it on top of the snake :)
-		col->segment.pos = room->snake.pieces[0];
+		col->segment.pos = room->snake[0].pieces[0];
 	}
 	col->phase = 0;
 	col->timeout = 60;
@@ -987,6 +994,7 @@ void room_init(struct Room *room)
 {
 	struct Vec2D pos;
 
+	room->game_over = false;
 	room->consumables_num = 0;
 	room->consumables = NULL;
 	room->walls_num = 0;
@@ -1005,9 +1013,11 @@ void room_init(struct Room *room)
 			room->cg_mode = CGM_CARTESIAN;
 			room->cg_cartesian.upper_left = (struct Vec2D){ .x = 0, .y = 0};
 			room->cg_cartesian.bottom_right = (struct Vec2D){ .x = SCREEN_WIDTH, .y = SCREEN_HEIGHT};
-			snake_init(&room->snake);
-			snake_add_segments(&room->snake, START_LEN - 1);
-			camera_prepare(&room->snake, CM_FIXED);
+
+			snake_init(&room->snake[0]);
+			snake_add_segments(&room->snake[0], START_LEN - 1);
+			camera_prepare(&room->snake[0], CM_FIXED);
+
 			room->walls_num = 4;
 			room->walls = (struct Wall *)malloc(room->walls_num * sizeof(struct Wall));
 			wall_init(&room->walls[0], 0, 0, SCREEN_WIDTH, 0, 10);
@@ -1032,6 +1042,25 @@ void room_init(struct Room *room)
 				obstacle_init(&room->obstacles[i], pos.x, pos.y,
 					rand() % (max_obstacle_size - min_obstacle_size) + min_obstacle_size);
 				room->obstacles[i].valid = valid;
+			}
+
+			// other snakes
+			for (int i = 1; i < SNAKE_NUM; ++i)
+			{
+				snake_init(&room->snake[i]);
+				room->snake[i].alive = false;
+			}
+			for (int i = 1; i < SNAKE_NUM; ++i)
+			{
+				bool valid = generate_safe_position(room, &pos,
+					36, 100, true, true, true);
+				if (valid)
+				{
+					room->snake[i].pieces[0] = pos;
+					snake_add_segments(&room->snake[i], START_LEN - 1);
+					room->snake[i].alive = true;
+					room->snake[i].skill = SKILL_ONIX;
+				}
 			}
 		} break;
 		case LT_POLYGON:
@@ -1075,10 +1104,29 @@ void room_init(struct Room *room)
 			}
 
 			// snake initialization
-			snake_init(&room->snake);
-			room->snake.pieces[0] = (struct Vec2D){ .x = 0, .y = -room->cg_polar.radius / 2 - HEAD_RADIUS - 1 };
-			snake_add_segments(&room->snake, START_LEN - 1);
-			camera_prepare(&room->snake, CM_TRACKING);
+			snake_init(&room->snake[0]);
+			room->snake[0].pieces[0] = (struct Vec2D){ .x = 0, .y = -room->cg_polar.radius / 2 - HEAD_RADIUS - 1 };
+			snake_add_segments(&room->snake[0], START_LEN - 1);
+			camera_prepare(&room->snake[0], CM_TRACKING);
+
+			// other snakes
+			for (int i = 1; i < SNAKE_NUM; ++i)
+			{
+				snake_init(&room->snake[i]);
+				room->snake[i].alive = false;
+			}
+			for (int i = 1; i < SNAKE_NUM; ++i)
+			{
+				bool valid = generate_safe_position(room, &pos,
+					36, 100, true, true, true);
+				if (valid)
+				{
+					room->snake[i].pieces[0] = pos;
+					snake_add_segments(&room->snake[i], START_LEN - 1);
+					room->snake[i].alive = true;
+					room->snake[i].skill = SKILL_UROBOROS;
+				}
+			}
 		} break;
 		case LT_STAR:
 		{
@@ -1139,10 +1187,29 @@ void room_init(struct Room *room)
 			}
 
 			// snake initialization
-			snake_init(&room->snake);
-			room->snake.pieces[0] = (struct Vec2D){ .x = 15, .y = -radius / 3 };
-			snake_add_segments(&room->snake, START_LEN - 1);
-			camera_prepare(&room->snake, CM_TPP_DELAYED);
+			snake_init(&room->snake[0]);
+			room->snake[0].pieces[0] = (struct Vec2D){ .x = 15, .y = -radius / 3 };
+			snake_add_segments(&room->snake[0], START_LEN - 1);
+			camera_prepare(&room->snake[0], CM_TPP_DELAYED);
+
+			// other snakes
+			for (int i = 1; i < SNAKE_NUM; ++i)
+			{
+				snake_init(&room->snake[i]);
+				room->snake[i].alive = false;
+			}
+			for (int i = 1; i < SNAKE_NUM; ++i)
+			{
+				bool valid = generate_safe_position(room, &pos,
+					36, 100, true, true, true);
+				if (valid)
+				{
+					room->snake[i].pieces[0] = pos;
+					snake_add_segments(&room->snake[i], START_LEN - 1);
+					room->snake[i].alive = true;
+					room->snake[i].skill = SKILL_GHOST;
+				}
+			}
 		} break;
 	}
 
@@ -1199,16 +1266,90 @@ void room_process(struct Room *room, double dt, bool ai)
 	}
 
 	if (ai)
-		snake_ai_dumb_control(&room->snake, room);
+		snake_ai_dumb_control(&room->snake[0], room);
 	else
-		snake_control(&room->snake);
+		snake_control(&room->snake[0]);
+	for (int i = 1; i < SNAKE_NUM; ++i)
+	{
+		if (!room->snake[i].alive) continue;
+		snake_ai_dumb_control(&room->snake[i], room);
+	}
 
 	for (int i = 0; i < room->consumables_num; ++i)
 	{
 		consumable_process(&room->consumables[i], dt, room);
 	}
-	snake_process(&room->snake, dt);
-	snake_eat_consumables(&room->snake, room);
+
+	for (int i = 0; i < SNAKE_NUM; ++i)
+	{
+		if (!room->snake[i].alive) continue;
+		snake_process(&room->snake[i], dt);
+		snake_eat_consumables(&room->snake[i], room);
+	}
+
+	room->game_over = snake_check_selfcollision(&room->snake[0]) ||
+		snake_check_wallcollision(&room->snake[0], room->walls, room->walls_num) ||
+		snake_check_obstaclecollision(&room->snake[0], room->obstacles, room->obstacles_num) ||
+		(room->snake[0].len < START_LEN);
+	for (int i = 1; i < SNAKE_NUM; ++i)
+	{
+		if (!room->snake[i].alive) continue;
+
+		if (snake_check_selfcollision(&room->snake[i]) ||
+			snake_check_wallcollision(&room->snake[i], room->walls, room->walls_num) ||
+			snake_check_obstaclecollision(&room->snake[i], room->obstacles, room->obstacles_num) ||
+			(room->snake[i].len < START_LEN))
+		{
+			room->snake[i].alive = false;
+			sfx_set(ST_DIE);
+		}
+	}
+
+	// snake-to-snake collisions
+	// quick'n'dirty implementation - to be fixed some day...
+	for (int i = 0; i < SNAKE_NUM; ++i)
+	{
+		if (!room->snake[i].alive || (SKILL_GHOST == room->snake[i].skill))
+			continue;
+		for (int j = 0; j < SNAKE_NUM; ++j)
+		{
+			if (!room->snake[j].alive ||
+				(SKILL_GHOST == room->snake[j].skill) ||
+				(i == j))
+				continue;
+
+			// head-to-head
+			struct Vec2D diff = room->snake[i].pieces[0];
+			vsub(&diff, &room->snake[j].pieces[0]);
+			if (vlen(&diff) < (HEAD_RADIUS + HEAD_RADIUS))
+			{
+				room->snake[i].alive = false;
+				room->snake[j].alive = false;
+				if (0 == j || 0 == i)
+				{
+					room->game_over = true;
+				}
+				sfx_set(ST_DIE);
+				break;
+			}
+
+			for (int k = room->snake[i].len - 1; k > 0; k -= PIECE_DRAW_INCREMENT)
+			{
+				struct Vec2D diff = room->snake[j].pieces[0];
+				vsub(&diff, &room->snake[i].pieces[k]);
+				if (vlen(&diff) < (HEAD_RADIUS + BODY_RADIUS))
+				{
+					room->snake[j].alive = false;
+					if (0 == j)
+					{
+						room->game_over = true;
+					}
+					sfx_set(ST_DIE);
+					break;
+				}
+			}
+		}
+	}
 }
 
 void room_draw(const struct Room *room)
@@ -1311,15 +1452,16 @@ void room_draw(const struct Room *room)
 	{
 		obstacle_draw(&room->obstacles[i], room);
 	}
-	snake_draw(&room->snake);
+	for (int i = 0; i < SNAKE_NUM; ++i)
+	{
+		if (!room->snake[i].alive) continue;
+		snake_draw(&room->snake[i]);
+	}
 }
 
 bool room_check_gameover(struct Room *room)
 {
-	return snake_check_selfcollision(&room->snake) ||
-		snake_check_wallcollision(&room->snake, room->walls, room->walls_num) ||
-		snake_check_obstaclecollision(&room->snake, room->obstacles, room->obstacles_num) ||
-		(room->snake.len < START_LEN);
+	return room->game_over;
 }
 
 void sfx_set(enum SoundType st)

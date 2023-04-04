@@ -23,6 +23,7 @@
 #define SNAKE_MAX_ANGLE_V				(M_PI * 2.14)
 #define SNAKE_BASE_V_MULTIPLIER			(1.19)
 #define SNAKE_BASE_W_MULTIPLIER			(1.10)
+#define SNAKE_NUM						(5)
 
 #define AI_DUMB_EYES_NUM				(16)
 #define AI_DUMB_VISION_RANGE			(24.0)
@@ -82,6 +83,7 @@ struct Snake
 	enum Turn turn;
 	enum SkillType skill;
 	double skill_timeout;
+	bool alive;
 };
 
 struct Consumable
@@ -118,7 +120,8 @@ struct Camera
 
 struct Room
 {
-	struct Snake snake;
+	bool game_over;
+	struct Snake snake[SNAKE_NUM];
 	enum ConsumableGenerationMode cg_mode;
 	union
 	{
