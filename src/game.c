@@ -1067,21 +1067,24 @@ void room_init(struct Room *room)
 			}
 
 			// other snakes
-			for (int i = 1; i < SNAKE_NUM; ++i)
+			if (rand() % 8 == 0)
 			{
-				snake_init(&room->snake[i]);
-				room->snake[i].alive = false;
-			}
-			for (int i = 1; i < SNAKE_NUM; ++i)
-			{
-				bool valid = generate_safe_position(room, &pos,
-					36, 100, true, true, true);
-				if (valid)
+				for (int i = 1; i < SNAKE_NUM; ++i)
 				{
-					room->snake[i].pieces[0] = pos;
-					snake_add_segments(&room->snake[i], START_LEN - 1);
-					room->snake[i].alive = true;
-					room->snake[i].skill = SKILL_ONIX;
+					snake_init(&room->snake[i]);
+					room->snake[i].alive = false;
+				}
+				for (int i = 1; i < SNAKE_NUM; ++i)
+				{
+					bool valid = generate_safe_position(room, &pos,
+						36, 100, true, true, true);
+					if (valid)
+					{
+						room->snake[i].pieces[0] = pos;
+						snake_add_segments(&room->snake[i], START_LEN - 1);
+						room->snake[i].alive = true;
+						room->snake[i].skill = SKILL_ONIX;
+					}
 				}
 			}
 		} break;
@@ -1132,21 +1135,24 @@ void room_init(struct Room *room)
 			camera_prepare(&room->snake[0], CM_TRACKING);
 
 			// other snakes
-			for (int i = 1; i < SNAKE_NUM; ++i)
+			if (rand() % 8 == 0)
 			{
-				snake_init(&room->snake[i]);
-				room->snake[i].alive = false;
-			}
-			for (int i = 1; i < SNAKE_NUM; ++i)
-			{
-				bool valid = generate_safe_position(room, &pos,
-					36, 100, true, true, true);
-				if (valid)
+				for (int i = 1; i < SNAKE_NUM; ++i)
 				{
-					room->snake[i].pieces[0] = pos;
-					snake_add_segments(&room->snake[i], START_LEN - 1);
-					room->snake[i].alive = true;
-					room->snake[i].skill = SKILL_UROBOROS;
+					snake_init(&room->snake[i]);
+					room->snake[i].alive = false;
+				}
+				for (int i = 1; i < SNAKE_NUM; ++i)
+				{
+					bool valid = generate_safe_position(room, &pos,
+						36, 100, true, true, true);
+					if (valid)
+					{
+						room->snake[i].pieces[0] = pos;
+						snake_add_segments(&room->snake[i], START_LEN - 1);
+						room->snake[i].alive = true;
+						room->snake[i].skill = SKILL_UROBOROS;
+					}
 				}
 			}
 		} break;
@@ -1215,21 +1221,24 @@ void room_init(struct Room *room)
 			camera_prepare(&room->snake[0], CM_TPP_DELAYED);
 
 			// other snakes
-			for (int i = 1; i < SNAKE_NUM; ++i)
+			if (rand() % 8 == 0)
 			{
-				snake_init(&room->snake[i]);
-				room->snake[i].alive = false;
-			}
-			for (int i = 1; i < SNAKE_NUM; ++i)
-			{
-				bool valid = generate_safe_position(room, &pos,
-					36, 100, true, true, true);
-				if (valid)
+				for (int i = 1; i < SNAKE_NUM; ++i)
 				{
-					room->snake[i].pieces[0] = pos;
-					snake_add_segments(&room->snake[i], START_LEN - 1);
-					room->snake[i].alive = true;
-					room->snake[i].skill = SKILL_GHOST;
+					snake_init(&room->snake[i]);
+					room->snake[i].alive = false;
+				}
+				for (int i = 1; i < SNAKE_NUM; ++i)
+				{
+					bool valid = generate_safe_position(room, &pos,
+						36, 100, true, true, true);
+					if (valid)
+					{
+						room->snake[i].pieces[0] = pos;
+						snake_add_segments(&room->snake[i], START_LEN - 1);
+						room->snake[i].alive = true;
+						room->snake[i].skill = SKILL_GHOST;
+					}
 				}
 			}
 		} break;

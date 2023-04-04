@@ -23,7 +23,7 @@
 #define SNAKE_MAX_ANGLE_V				(M_PI * 2.14)
 #define SNAKE_BASE_V_MULTIPLIER			(1.19)
 #define SNAKE_BASE_W_MULTIPLIER			(1.10)
-#define SNAKE_NUM						(5)
+#define SNAKE_NUM						(2)
 
 #define AI_DUMB_EYES_NUM				(16)
 #define AI_DUMB_VISION_RANGE			(24.0)
