@@ -304,6 +304,28 @@ void snake_ai_dumb_control(struct Snake *snake, const struct Room *room)
 			}
 		}
 	}
+	if (snake->skill != SKILL_GHOST)
+	{
+		for (int k = 0; k < SNAKE_NUM; ++k)
+		{
+			if ((snake == &room->snake[k]) ||
+				(room->snake[k].skill == SKILL_GHOST)) continue;
+
+			for (int i = snake->len - 1; i >= 0; i -= PIECE_DRAW_INCREMENT)
+			{
+				for (int j = 0; j < AI_DUMB_EYES_NUM / 2; ++j)
+				{
+					if (vdist(&room->snake[k].pieces[i], &eyes[j]) < (BODY_RADIUS + AI_DUMB_DETECTION_MARGIN))
+						++leftd;
+				}
+				for (int j = AI_DUMB_EYES_NUM / 2; j < AI_DUMB_EYES_NUM; ++j)
+				{
+					if (vdist(&room->snake[k].pieces[i], &eyes[j]) < (BODY_RADIUS + AI_DUMB_DETECTION_MARGIN))
+						++rightd;
+				}
+			}
+		}
+	}
 
 	snake->turn = TURN_NONE;
 	if (leftd > rightd)
