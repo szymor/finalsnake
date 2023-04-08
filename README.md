@@ -13,4 +13,4 @@ As the name suggests, it is yet another implementation of a popular Snake game. 
 ## to do
 - music and sounds,
 - custom level support,
-- multiple snakes (one for player, others for AI).
+- animations?

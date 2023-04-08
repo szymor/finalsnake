@@ -1023,6 +1023,11 @@ void room_init(struct Room *room)
 	room->walls = NULL;
 	room->obstacles_num = 0;
 	room->obstacles = NULL;
+	for (int i = 0; i < SNAKE_NUM; ++i)
+	{
+		snake_init(&room->snake[i]);
+		room->snake[i].alive = false;
+	}
 
 	switch (menu_options[MO_LEVELTYPE])
 	{
@@ -1036,7 +1041,7 @@ void room_init(struct Room *room)
 			room->cg_cartesian.upper_left = (struct Vec2D){ .x = 0, .y = 0};
 			room->cg_cartesian.bottom_right = (struct Vec2D){ .x = SCREEN_WIDTH, .y = SCREEN_HEIGHT};
 
-			snake_init(&room->snake[0]);
+			room->snake[0].alive = true;
 			snake_add_segments(&room->snake[0], START_LEN - 1);
 			camera_prepare(&room->snake[0], CM_FIXED);
 
@@ -1069,11 +1074,6 @@ void room_init(struct Room *room)
 			// other snakes
 			if (rand() % 8 == 0)
 			{
-				for (int i = 1; i < SNAKE_NUM; ++i)
-				{
-					snake_init(&room->snake[i]);
-					room->snake[i].alive = false;
-				}
 				for (int i = 1; i < SNAKE_NUM; ++i)
 				{
 					bool valid = generate_safe_position(room, &pos,
@@ -1129,7 +1129,7 @@ void room_init(struct Room *room)
 			}
 
 			// snake initialization
-			snake_init(&room->snake[0]);
+			room->snake[0].alive = true;
 			room->snake[0].pieces[0] = (struct Vec2D){ .x = 0, .y = -room->cg_polar.radius / 2 - HEAD_RADIUS - 1 };
 			snake_add_segments(&room->snake[0], START_LEN - 1);
 			camera_prepare(&room->snake[0], CM_TRACKING);
@@ -1137,11 +1137,6 @@ void room_init(struct Room *room)
 			// other snakes
 			if (rand() % 8 == 0)
 			{
-				for (int i = 1; i < SNAKE_NUM; ++i)
-				{
-					snake_init(&room->snake[i]);
-					room->snake[i].alive = false;
-				}
 				for (int i = 1; i < SNAKE_NUM; ++i)
 				{
 					bool valid = generate_safe_position(room, &pos,
@@ -1215,7 +1210,7 @@ void room_init(struct Room *room)
 			}
 
 			// snake initialization
-			snake_init(&room->snake[0]);
+			room->snake[0].alive = true;
 			room->snake[0].pieces[0] = (struct Vec2D){ .x = 15, .y = -radius / 3 };
 			snake_add_segments(&room->snake[0], START_LEN - 1);
 			camera_prepare(&room->snake[0], CM_TPP_DELAYED);
@@ -1223,11 +1218,6 @@ void room_init(struct Room *room)
 			// other snakes
 			if (rand() % 8 == 0)
 			{
-				for (int i = 1; i < SNAKE_NUM; ++i)
-				{
-					snake_init(&room->snake[i]);
-					room->snake[i].alive = false;
-				}
 				for (int i = 1; i < SNAKE_NUM; ++i)
 				{
 					bool valid = generate_safe_position(room, &pos,
