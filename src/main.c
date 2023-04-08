@@ -326,7 +326,7 @@ void gs_game_process(void)
 				camera_process(dt);
 			}
 			room_draw(&room);
-			fps_draw();
+			//fps_draw();
 			pause_draw(paused);
 			SDL_Flip(screen);
 			if (room_check_gameover(&room))
